@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ລະບົບບໍລິຫານຮ້ານສ້ອມ-ຂາຍໂທລະສັບມືຖື</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Lao:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --red-1:#8f0f24;
+  --red-2:#c81e3a;
+  --red-3:#e13950;
+  --black-1:#0c0a0b;
+  --black-2:#171213;
+  --gold:#c9a24a;
+}
+[data-theme="dark"]{
+  --bg:#0c0a0b;
+  --surface:#171213;
+  --surface-2:#1f1717;
+  --border:#3a2a2c;
+  --text:#f3e9e7;
+  --text-dim:#b89a97;
+  --accent:#e13950;
+  --accent-2:#8f0f24;
+  --shadow: 0 8px 24px rgba(0,0,0,.5);
+}
+[data-theme="light"]{
+  --bg:#f8f3f1;
+  --surface:#ffffff;
+  --surface-2:#f2e8e5;
+  --border:#e6d5d1;
+  --text:#241616;
+  --text-dim:#7a5b58;
+  --accent:#b3122d;
+  --accent-2:#7a0e21;
+  --shadow: 0 8px 20px rgba(120,40,40,.12);
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:'Noto Serif Lao', serif !important;
+  background:var(--bg);
+  color:var(--text);
+  transition:background .25s ease, color .25s ease;
+  min-height:100vh;
+}
+*{font-family:'Noto Serif Lao', serif !important;}
+button, input, select, textarea{ font-family:'Noto Serif Lao', serif !important; }
+
+/* layout */
+.app{ display:flex; min-height:100vh; }
+.sidebar{
+  width:250px; flex-shrink:0;
+  background:linear-gradient(180deg, var(--black-2), var(--black-1));
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+}
+[data-theme="light"] .sidebar{ background:linear-gradient(180deg,#2a1416,#1a0d0e); }
+.brand{
+  padding:26px 20px 18px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.brand .mark{ font-size:13px; letter-spacing:4px; color:var(--gold); font-weight:600; }
+.brand h1{ font-size:21px; color:#fff; margin-top:6px; font-weight:700; line-height:1.4; }
+.nav{ flex:1; overflow-y:auto; padding:14px 10px; }
+.nav-item{
+  display:flex; align-items:center; gap:12px;
+  padding:12px 14px; border-radius:8px; margin-bottom:4px;
+  color:#e8d9d7; cursor:pointer; font-size:15px;
+  border-left:3px solid transparent;
+  transition:all .15s ease;
+}
+.nav-item .num{ font-size:11px; color:var(--gold); opacity:.8; width:16px; }
+.nav-item:hover{ background:rgba(255,255,255,.06); }
+.nav-item.active{ background:rgba(225,57,80,.18); border-left-color:var(--accent); color:#fff; }
+.sidebar-foot{ padding:14px; border-top:1px solid rgba(255,255,255,.08); }
+.theme-toggle{
+  display:flex; background:rgba(255,255,255,.06); border-radius:20px; padding:4px; gap:4px;
+}
+.theme-toggle button{
+  flex:1; border:none; background:transparent; color:#cbb; padding:8px 6px; border-radius:16px;
+  cursor:pointer; font-size:13px;
+}
+.theme-toggle button.active{ background:var(--accent); color:#fff; }
+
+.main{ flex:1; padding:28px 34px; max-width:100%; overflow-x:hidden; }
+.topbar{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; flex-wrap:wrap; gap:10px;}
+.topbar h2{ font-size:25px; font-weight:700; }
+.topbar .sub{ color:var(--text-dim); font-size:14px; margin-top:4px; }
+.btn{
+  background:var(--accent); color:#fff; border:none; padding:10px 18px; border-radius:8px;
+  font-size:14px; cursor:pointer; box-shadow:var(--shadow); transition:transform .12s, opacity .12s;
+}
+.btn:hover{ opacity:.92; transform:translateY(-1px); }
+.btn.outline{ background:transparent; border:1px solid var(--accent); color:var(--accent); box-shadow:none; }
+.btn.ghost{ background:var(--surface-2); color:var(--text); box-shadow:none; }
+.btn.sm{ padding:6px 12px; font-size:12.5px; }
+
+.grid{ display:grid; gap:16px; }
+.grid.cols-4{ grid-template-columns:repeat(4,1fr); }
+.grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+.grid.cols-2{ grid-template-columns:repeat(2,1fr); }
+@media(max-width:1100px){ .grid.cols-4{grid-template-columns:repeat(2,1fr);} .grid.cols-3{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:760px){ .app{flex-direction:column;} .sidebar{width:100%; height:auto; position:relative;} .grid.cols-4,.grid.cols-3,.grid.cols-2{grid-template-columns:1fr;} .main{padding:18px;} }
+
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px;
+  box-shadow:var(--shadow);
+}
+.stat .label{ font-size:13px; color:var(--text-dim); }
+.stat .value{ font-size:25px; font-weight:700; margin-top:6px; }
+.stat .delta{ font-size:12px; margin-top:6px; }
+.stat .delta.up{ color:#3fbf6b; }
+.stat .delta.down{ color:var(--accent); }
+
+table{ width:100%; border-collapse:collapse; font-size:14px; }
+th{ text-align:left; padding:10px 12px; color:var(--text-dim); font-weight:600; border-bottom:1px solid var(--border); font-size:12.5px; letter-spacing:.5px; }
+td{ padding:11px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+tr:last-child td{ border-bottom:none; }
+tr:hover td{ background:var(--surface-2); }
+
+.badge{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600; }
+.badge.red{ background:rgba(225,57,80,.15); color:var(--accent); }
+.badge.gold{ background:rgba(201,162,74,.18); color:var(--gold); }
+.badge.green{ background:rgba(63,191,107,.15); color:#3fbf6b; }
+.badge.gray{ background:var(--surface-2); color:var(--text-dim); }
+
+.section-title{ font-size:16px; font-weight:700; margin:26px 0 10px 0; display:flex; align-items:center; gap:8px;}
+.section-title .line{ flex:1; height:1px; background:var(--border);}
+
+/* ticket stub card for repair jobs */
+.ticket{
+  background:var(--surface); border:1px dashed var(--border); border-radius:10px;
+  padding:16px; position:relative; box-shadow:var(--shadow);
+}
+.ticket::before, .ticket::after{
+  content:""; position:absolute; width:16px; height:16px; background:var(--bg); border-radius:50%;
+  top:50%; transform:translateY(-50%);
+}
+.ticket::before{ left:-8px; }
+.ticket::after{ right:-8px; }
+.ticket .tno{ font-size:12px; color:var(--gold); letter-spacing:2px; font-weight:700;}
+.ticket h4{ font-size:17px; margin:4px 0 2px; }
+.ticket .meta{ font-size:12.5px; color:var(--text-dim); margin-bottom:8px;}
+.ticket .foot{ display:flex; justify-content:space-between; align-items:center; margin-top:10px; }
+
+.queue-row{
+  display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px; margin-bottom:8px;
+}
+.queue-num{
+  width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
+  display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0;
+}
+.queue-info{ flex:1; }
+.queue-info .name{ font-weight:600; }
+.queue-info .sub{ font-size:12.5px; color:var(--text-dim); }
+.queue-actions{ display:flex; gap:6px; }
+.iconbtn{
+  width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text); cursor:pointer; font-size:14px;
+}
+.iconbtn:hover{ border-color:var(--accent); color:var(--accent); }
+
+.notif-item{ display:flex; gap:12px; padding:12px; border-bottom:1px solid var(--border); }
+.notif-item .dot{ width:8px; height:8px; border-radius:50%; background:var(--accent); margin-top:6px; flex-shrink:0;}
+.notif-item .body{ flex:1; }
+.notif-item .body .msg{ font-size:14px; }
+.notif-item .body .when{ font-size:12px; color:var(--text-dim); margin-top:3px;}
+
+/* modal */
+.overlay{ position:fixed; inset:0; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; z-index:100; padding:16px;}
+.overlay.show{ display:flex; }
+.modal{ background:var(--surface); border:1px solid var(--border); border-radius:14px; width:480px; max-width:100%; max-height:88vh; overflow-y:auto; box-shadow:var(--shadow); }
+.modal-head{ padding:18px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+.modal-head h3{ font-size:18px; }
+.modal-head span{ cursor:pointer; font-size:20px; color:var(--text-dim); }
+.modal-body{ padding:20px 22px; display:flex; flex-direction:column; gap:12px; }
+.field label{ display:block; font-size:13px; color:var(--text-dim); margin-bottom:5px; }
+.field input, .field select, .field textarea{
+  width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:var(--bg);
+  color:var(--text); font-size:14px;
+}
+.modal-foot{ padding:16px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px;}
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+.tabs-inline{ display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.tabs-inline button{
+  padding:8px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface);
+  color:var(--text-dim); font-size:13px; cursor:pointer;
+}
+.tabs-inline button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+
+.empty{ text-align:center; padding:40px 10px; color:var(--text-dim); }
+.empty .big{ font-size:30px; margin-bottom:8px; }
+
+.progress-track{ height:6px; background:var(--surface-2); border-radius:6px; overflow:hidden; margin-top:8px;}
+.progress-fill{ height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
+
+.mini-note{ font-size:12px; color:var(--text-dim); margin-top:16px; border-top:1px dashed var(--border); padding-top:10px;}
+</style>
+</head>
+<body data-theme="dark">
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="mark">RED &amp; BLACK MOBILE</div>
+      <h1>ລະບົບບໍລິຫານຮ້ານ<br>ສ້ອມ &amp; ຂາຍໂທລະສັບມືຖື</h1>
+    </div>
+    <nav class="nav" id="navList"></nav>
+    <div class="sidebar-foot">
+      <div class="theme-toggle">
+        <button id="btnDark" onclick="setTheme('dark')">🌙 ມືດ</button>
+        <button id="btnLight" onclick="setTheme('light')">☀️ ແຈ້ງ</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main" id="mainContent"></main>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<script>
+/* ================= STATE ================= */
+let uid = 1000;
+const nextId = () => uid++;
+
+const state = {
+  theme: 'dark',
+  tab: 'dashboard',
+  stock: [
+    {id:nextId(), name:'ໜ້າຈໍ iPhone 11', category:'ອາໄຫລ່', sku:'SCR-IP11', qty:6, minQty:3, cost:850, price:1500, unit:'ອັນ'},
+    {id:nextId(), name:'ແບັດເຕີຣີ Samsung A32', category:'ອາໄຫລ່', sku:'BAT-SSA32', qty:2, minQty:4, cost:280, price:550, unit:'ກ້ອນ'},
+    {id:nextId(), name:'ສາຍສາກ Type-C', category:'ອຸປະກອນ', sku:'ACC-TC01', qty:24, minQty:10, cost:35, price:90, unit:'ເສັ້ນ'},
+    {id:nextId(), name:'ຟິມກະຈົກກັນຮອຍ', category:'ອຸປະກອນ', sku:'ACC-GLS', qty:5, minQty:8, cost:20, price:79, unit:'ແຜ່ນ'},
+    {id:nextId(), name:'ໄອຊີ Power iPhone X', category:'ອາໄຫລ່', sku:'IC-PWX', qty:3, minQty:2, cost:120, price:300, unit:'ອັນ'},
+  ],
+  phones: [
+    {id:nextId(), brand:'Apple', model:'iPhone 12 128GB', imei:'358812xxxxxx01', condition:'ມືສອງ ສະພາບດີ 90%', cost:9500, price:12900, status:'ພ້ອມຂາຍ'},
+    {id:nextId(), brand:'Samsung', model:'Galaxy S21 FE', imei:'358812xxxxxx02', condition:'ມືສອງ ສະພາບດີ 85%', cost:6800, price:9500, status:'ພ້ອມຂາຍ'},
+    {id:nextId(), brand:'Xiaomi', model:'Redmi Note 12', imei:'358812xxxxxx03', condition:'ມືສອງ ສະພາບດີຫລາຍ 95%', cost:3200, price:4500, status:'ຂາຍແລ້ວ'},
+  ],
+  sales: [
+    {id:nextId(), date:daysAgo(1), items:[{name:'Redmi Note 12',qty:1,price:4500,cost:3200}], total:4500, customer:'ທ່ານ ສົມໄຊ', payment:'ເງິນສົດ'},
+    {id:nextId(), date:daysAgo(3), items:[{name:'ຟິມກະຈົກກັນຮອຍ',qty:2,price:79,cost:20},{name:'ສາຍສາກ Type-C',qty:1,price:90,cost:35}], total:248, customer:'ລູກຄ້າໜ້າຮ້ານ', payment:'ໂອນເງິນ'},
+  ],
+  jobs: [],
+  expenses: [
+    {id:nextId(), date:daysAgo(5), category:'ຄ່າເຊົ່າຮ້ານ', desc:'ຄ່າເຊົ່າປະຈຳເດືອນ', amount:8000},
+    {id:nextId(), category:'ຄ່ານ້ຳ-ໄຟ', date:daysAgo(4), desc:'ບິນຄ່າກະແສໄຟຟ້າ', amount:1200},
+  ],
+  notifLog: [],
+};
+
+const STATUS_FLOW = ['ຮັບເຄື່ອງ','ກຳລັງກວດເຊັກ','ລໍຖ້າອາໄຫລ່','ກຳລັງສ້ອມ','ສ້ອມແລ້ວ','ແຈ້ງລູກຄ້າແລ້ວ','ຮັບເຄື່ອງຄືນແລ້ວ'];
+const STATUS_COLOR = {
+  'ຮັບເຄື່ອງ':'gray','ກຳລັງກວດເຊັກ':'gold','ລໍຖ້າອາໄຫລ່':'red','ກຳລັງສ້ອມ':'gold',
+  'ສ້ອມແລ້ວ':'green','ແຈ້ງລູກຄ້າແລ້ວ':'green','ຮັບເຄື່ອງຄືນແລ້ວ':'gray','ຍົກເລີກ':'red'
+};
+
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function thb(n){ return Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0}); }
+function monthKey(dateStr){ return dateStr.slice(0,7); }
+function yearKey(dateStr){ return dateStr.slice(0,4); }
+
+/* seed a few example jobs */
+function seedJobs(){
+  addJob({customer:'ທ່ານ ນາງ ວັນນາ ໃຈດີ', phone:'iPhone XR', issue:'ໜ້າຈໍແຕກ ປ່ຽນໜ້າຈໍໃໝ່', price:1800, deposit:500}, false);
+  addJob({customer:'ທ່ານ ອານັນ ພົນສິງ', phone:'Samsung A12', issue:'ແບັດເສື່ອມໄວ', price:650, deposit:0}, false);
+  addJob({customer:'ທ່ານ ນາງ ກົມນະຊົນກ ສີທອງ', phone:'Oppo A5s', issue:'ເປີດບໍ່ຕິດ ກວດເຊັກບອດ', price:0, deposit:0}, false);
+  updateJobStatus(state.jobs[0].id, 'ກຳລັງສ້ອມ', false);
+  updateJobStatus(state.jobs[1].id, 'ສ້ອມແລ້ວ', false);
+}
+
+/* ================= NAV ================= */
+const NAV = [
+  {id:'dashboard', label:'ພາບລວມຮ້ານ', icon:'🏠'},
+  {id:'sales', label:'ຈັດການການຂາຍ', icon:'🧾', num:'1'},
+  {id:'stock', label:'ສະຕັອກອາໄຫລ່ & ອຸປະກອນ', icon:'🧰', num:'2'},
+  {id:'jobs', label:'ອັບເດດສະຖານະ & ຕິດຕາມງານ', icon:'🔧', num:'3'},
+  {id:'queue', label:'ຮັບອໍເດີ & ຈັດຄິວງານ', icon:'📋', num:'4'},
+  {id:'notify', label:'ແຈ້ງເຕືອນລູກຄ້າ', icon:'🔔', num:'5'},
+  {id:'accounting', label:'ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ', icon:'📊', num:'6'},
+];
+
+function renderNav(){
+  const el = document.getElementById('navList');
+  el.innerHTML = NAV.map(n => `
+    <div class="nav-item ${state.tab===n.id?'active':''}" onclick="goTab('${n.id}')">
+      <span>${n.icon}</span>
+      <span class="num">${n.num||''}</span>
+      <span>${n.label}</span>
+    </div>`).join('');
+}
+function goTab(id){ state.tab = id; render(); }
+function setTheme(t){
+  state.theme = t;
+  document.body.setAttribute('data-theme', t);
+  document.getElementById('btnDark').classList.toggle('active', t==='dark');
+  document.getElementById('btnLight').classList.toggle('active', t==='light');
+  render();
+}
+
+/* ================= MODAL HELPERS ================= */
+function openModal(html){
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('overlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+/* ================= RENDER ROOT ================= */
+function render(){
+  renderNav();
+  const main = document.getElementById('mainContent');
+  if(state.tab==='dashboard') main.innerHTML = viewDashboard();
+  else if(state.tab==='sales') main.innerHTML = viewSales();
+  else if(state.tab==='stock') main.innerHTML = viewStock();
+  else if(state.tab==='jobs') main.innerHTML = viewJobs();
+  else if(state.tab==='queue') main.innerHTML = viewQueue();
+  else if(state.tab==='notify') main.innerHTML = viewNotify();
+  else if(state.tab==='accounting') main.innerHTML = viewAccounting();
+  afterRenderHooks();
+}
+
+let afterRenderHooks = () => {};
+
+/* ================= DASHBOARD ================= */
+function viewDashboard(){
+  const todaySales = state.sales.filter(s=>s.date===today()).reduce((a,b)=>a+b.total,0);
+  const activeJobs = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).length;
+  const lowStock = state.stock.filter(s=>s.qty<=s.minQty).length;
+  const monthProfit = computeProfit(monthKey(today()));
+
+  const recentJobs = [...state.jobs].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,4);
+
+  afterRenderHooks = () => drawChart('dashChart', monthlySeries(6));
+
+  return `
+  <div class="topbar">
+    <div><h2>ພາບລວມຮ້ານ</h2><div class="sub">ສະຫລຸບສະຖານະຮ້ານມື້ນີ້ ${formatLaoDate(today())}</div></div>
+  </div>
+
+  <div class="grid cols-4">
+    <div class="card stat"><div class="label">ຍອດຂາຍມື້ນີ້</div><div class="value">₭${thb(todaySales)}</div><div class="delta up">ຈາກໃບບິນ ${state.sales.filter(s=>s.date===today()).length} ໃບ</div></div>
+    <div class="card stat"><div class="label">ງານສ້ອມທີ່ກຳລັງດຳເນີນການ</div><div class="value">${activeJobs} ງານ</div><div class="delta">ລວມທຸກຄິວ</div></div>
+    <div class="card stat"><div class="label">ອາໄຫລ່ໃກ້ໝົດ</div><div class="value" style="color:${lowStock? 'var(--accent)':'inherit'}">${lowStock} ລາຍການ</div><div class="delta ${lowStock?'down':''}">${lowStock? 'ຄວນສັ່ງເພີ່ມ':'ສະຕັອກປົກກະຕິ'}</div></div>
+    <div class="card stat"><div class="label">ກຳໄລເດືອນນີ້</div><div class="value">₭${thb(monthProfit)}</div><div class="delta ${monthProfit>=0?'up':'down'}">${monthProfit>=0?'ກຳໄລ':'ຂາດທຶນ'}</div></div>
+  </div>
+
+  <div class="section-title"><span>ຍອດຂາຍ-ຕົ້ນທຶນ 6 ເດືອນຫລ້າສຸດ</span><div class="line"></div></div>
+  <div class="card"><canvas id="dashChart" height="90"></canvas></div>
+
+  <div class="section-title"><span>ງານສ້ອມຫລ້າສຸດ</span><div class="line"></div><span onclick="goTab('jobs')" style="cursor:pointer;font-size:13px;color:var(--accent)">ເບິ່ງທັງໝົດ →</span></div>
+  <div class="grid cols-4">
+    ${recentJobs.length? recentJobs.map(j=>ticketCard(j)).join('') : `<div class="empty" style="grid-column:1/-1">ຍັງບໍ່ມີງານສ້ອມ</div>`}
+  </div>
+  `;
+}
+
+function formatLaoDate(d){
+  const dt = new Date(d);
+  const months=['ມ.ກ.','ກ.ພ.','ມີ.ນ.','ມ.ສ.','ພ.ພ.','ມິ.ຖ.','ກ.ລ.','ສ.ຫ.','ກ.ຍ.','ຕ.ລ.','ພ.ຈ.','ທ.ວ.'];
+  return `${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()+543}`;
+}
+
+function ticketCard(j){
+  return `
+  <div class="ticket">
+    <div class="tno">ໃບງານ #${j.id}</div>
+    <h4>${j.phone}</h4>
+    <div class="meta">${j.customer} · ${j.issue}</div>
+    <span class="badge ${STATUS_COLOR[j.status]}">${j.status}</span>
+    <div class="foot">
+      <span style="font-size:12px;color:var(--text-dim)">ຄິວ #${j.queue}</span>
+      <span style="font-size:13px;font-weight:700">₭${thb(j.price)}</span>
+    </div>
+  </div>`;
+}
+
+/* ================= SALES (1) ================= */
+let saleCart = [];
+function viewSales(){
+  const catalog = [
+    ...state.phones.filter(p=>p.status==='ພ້ອມຂາຍ').map(p=>({id:'ph-'+p.id, type:'phone', name:`${p.brand} ${p.model}`, price:p.price, cost:p.cost})),
+    ...state.stock.map(s=>({id:'st-'+s.id, type:'stock', name:s.name, price:s.price, cost:s.cost, qty:s.qty}))
+  ];
+  const cartTotal = saleCart.reduce((a,b)=>a+b.price*b.qty,0);
+
+  afterRenderHooks = () => {};
+
+  return `
+  <div class="topbar">
+    <div><h2>ຈັດການການຂາຍ</h2><div class="sub">ຂາຍໂທລະສັບມືຖືມືສອງ / ອາໄຫລ່ / ອຸປະກອນ ໜ້າຮ້ານ (POS)</div></div>
+  </div>
+
+  <div class="grid cols-2" style="align-items:start;">
+    <div class="card">
+      <div class="section-title" style="margin-top:0"><span>ເລືອກສິນຄ້າ</span><div class="line"></div></div>
+      <table>
+        <tr><th>ສິນຄ້າ</th><th>ປະເພດ</th><th>ລາຄາ</th><th></th></tr>
+        ${catalog.map(c=>`
+          <tr>
+            <td>${c.name}</td>
+            <td><span class="badge ${c.type==='phone'?'red':'gold'}">${c.type==='phone'?'ໂທລະສັບມືສອງ':'ອາໄຫລ່/ອຸປະກອນ'}</span></td>
+            <td>₭${thb(c.price)}</td>
+            <td><button class="btn sm outline" onclick='addToCart(${JSON.stringify(c)})'>+ ເພີ່ມ</button></td>
+          </tr>`).join('')}
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title" style="margin-top:0"><span>ກະຕ່າຂາຍ</span><div class="line"></div></div>
+      ${saleCart.length? `
+      <table>
+        <tr><th>ສິນຄ້າ</th><th>ຈຳນວນ</th><th>ລວມ</th><th></th></tr>
+        ${saleCart.map((c,i)=>`
+          <tr>
+            <td>${c.name}</td>
+            <td>
+              <button class="iconbtn" onclick="changeCartQty(${i},-1)">−</button>
+              ${c.qty}
+              <button class="iconbtn" onclick="changeCartQty(${i},1)">+</button>
+            </td>
+            <td>₭${thb(c.price*c.qty)}</td>
+            <td><span class="iconbtn" onclick="removeFromCart(${i})">✕</span></td>
+          </tr>`).join('')}
+      </table>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:18px;font-weight:700;">
+        <span>ຍອດລວມ</span><span>₭${thb(cartTotal)}</span>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label>ຊື່ລູກຄ້າ</label>
+        <input id="saleCustomer" placeholder="ລູກຄ້າໜ້າຮ້ານ">
+      </div>
+      <div class="field">
+        <label>ຊ່ອງທາງຊຳລະເງິນ</label>
+        <select id="salePayment"><option>ເງິນສົດ</option><option>ໂອນເງິນ</option><option>ບັດເຄຣດິດ</option></select>
+      </div>
+      <button class="btn" style="width:100%;margin-top:6px;" onclick="checkoutSale()">✅ ບັນທຶກການຂາຍ</button>
+      `: `<div class="empty"><div class="big">🛒</div>ຍັງບໍ່ມີສິນຄ້າໃນກະຕ່າ<br>ເລືອກສິນຄ້າຈາກລາຍການດ້ານຊ້າຍ</div>`}
+    </div>
+  </div>
+
+  <div class="section-title"><span>ປະຫວັດການຂາຍຫລ້າສຸດ</span><div class="line"></div></div>
+  <div class="card">
+    <table>
+      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th></tr>
+      ${[...state.sales].reverse().map(s=>`
+        <tr>
+          <td>${formatLaoDate(s.date)}</td>
+          <td>${s.customer}</td>
+          <td>${s.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
+          <td><span class="badge gray">${s.payment}</span></td>
+          <td style="font-weight:700;">₭${thb(s.total)}</td>
+        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີປະຫວັດການຂາຍ</td></tr>`}
+    </table>
+  </div>
+  `;
+}
+
+function addToCart(item){
+  const existing = saleCart.find(c=>c.id===item.id);
+  if(existing) existing.qty++;
+  else saleCart.push({...item, qty:1});
+  render();
+}
+function changeCartQty(i,d){
+  saleCart[i].qty += d;
+  if(saleCart[i].qty<=0) saleCart.splice(i,1);
+  render();
+}
+function removeFromCart(i){ saleCart.splice(i,1); render(); }
+function checkoutSale(){
+  if(!saleCart.length) return;
+  const customer = document.getElementById('saleCustomer').value || 'ລູກຄ້າໜ້າຮ້ານ';
+  const payment = document.getElementById('salePayment').value;
+  const total = saleCart.reduce((a,b)=>a+b.price*b.qty,0);
+  state.sales.push({id:nextId(), date:today(), items:saleCart.map(c=>({name:c.name,qty:c.qty,price:c.price,cost:c.cost})), total, customer, payment});
+  // deduct stock / mark phone sold
+  saleCart.forEach(c=>{
+    if(c.type==='stock'){
+      const st = state.stock.find(s=>'st-'+s.id===c.id);
+      if(st) st.qty = Math.max(0, st.qty - c.qty);
+    } else if(c.type==='phone'){
+      const ph = state.phones.find(p=>'ph-'+p.id===c.id);
+      if(ph) ph.status='ຂາຍແລ້ວ';
+    }
+  });
+  saleCart = [];
+  render();
+}
+
+/* ================= STOCK (2) ================= */
+function viewStock(){
+  afterRenderHooks = () => {};
+  return `
+  <div class="topbar">
+    <div><h2>ສະຕັອກອາໄຫລ່ &amp; ອຸປະກອນ</h2><div class="sub">ຕິດຕາມຈຳນວນຄົງເຫລືອ ແຈ້ງເຕືອນເມື່ອໃກ້ໝົດ</div></div>
+    <button class="btn" onclick="openStockForm()">+ ເພີ່ມລາຍການສະຕັອກ</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <tr><th>ລະຫັດ SKU</th><th>ຊື່ສິນຄ້າ</th><th>ປະເພດ</th><th>ຄົງເຫລືອ</th><th>ຕົ້ນທຶນ</th><th>ລາຄາຂາຍ</th><th>ສະຖານະ</th><th></th></tr>
+      ${state.stock.map(s=>`
+        <tr>
+          <td>${s.sku}</td>
+          <td>${s.name}</td>
+          <td><span class="badge gray">${s.category}</span></td>
+          <td>${s.qty} ${s.unit}</td>
+          <td>₭${thb(s.cost)}</td>
+          <td>₭${thb(s.price)}</td>
+          <td>${s.qty<=s.minQty? `<span class="badge red">ໃກ້ໝົດ</span>`:`<span class="badge green">ປົກກະຕິ</span>`}</td>
+          <td style="white-space:nowrap;">
+            <button class="iconbtn" onclick="adjustStock(${s.id},1)">+</button>
+            <button class="iconbtn" onclick="adjustStock(${s.id},-1)">−</button>
+            <button class="iconbtn" onclick="deleteStock(${s.id})">✕</button>
+          </td>
+        </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີລາຍການສະຕັອກ</td></tr>`}
+    </table>
+  </div>
+
+  <div class="section-title"><span>ໂທລະສັບມືສອງ (ສະຕັອກເຄື່ອງ)</span><div class="line"></div></div>
+  <div class="card">
+    <table>
+      <tr><th>ຍີ່ຫໍ້/ຮຸ່ນ</th><th>IMEI</th><th>ສະພາບ</th><th>ຕົ້ນທຶນ</th><th>ລາຄາຂາຍ</th><th>ສະຖານະ</th></tr>
+      ${state.phones.map(p=>`
+        <tr>
+          <td>${p.brand} ${p.model}</td>
+          <td>${p.imei}</td>
+          <td>${p.condition}</td>
+          <td>₭${thb(p.cost)}</td>
+          <td>₭${thb(p.price)}</td>
+          <td>${p.status==='ພ້ອມຂາຍ'? `<span class="badge green">ພ້ອມຂາຍ</span>`:`<span class="badge gray">ຂາຍແລ້ວ</span>`}</td>
+        </tr>`).join('')}
+    </table>
+  </div>
+  `;
+}
+function adjustStock(id,d){
+  const s = state.stock.find(x=>x.id===id);
+  if(s) s.qty = Math.max(0, s.qty+d);
+  render();
+}
+function deleteStock(id){ state.stock = state.stock.filter(s=>s.id!==id); render(); }
+function openStockForm(){
+  openModal(`
+    <div class="modal-head"><h3>ເພີ່ມລາຍການສະຕັອກ</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div class="field"><label>ຊື່ສິນຄ້າ</label><input id="f_name" placeholder="ເຊັ່ນ ໜ້າຈໍ iPhone 12"></div>
+      <div class="row2">
+        <div class="field"><label>ປະເພດ</label><select id="f_cat"><option>ອາໄຫລ່</option><option>ອຸປະກອນ</option></select></div>
+        <div class="field"><label>SKU</label><input id="f_sku" placeholder="SCR-001"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>ຈຳນວນຄົງເຫລືອ</label><input id="f_qty" type="number" value="1"></div>
+        <div class="field"><label>ຈຳນວນຂັ້ນຕ່ຳແຈ້ງເຕືອນ</label><input id="f_min" type="number" value="3"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>ຕົ້ນທຶນ (ກີບ)</label><input id="f_cost" type="number" value="0"></div>
+        <div class="field"><label>ລາຄາຂາຍ (ກີບ)</label><input id="f_price" type="number" value="0"></div>
+      </div>
+      <div class="field"><label>ໜ່ວຍນັບ</label><input id="f_unit" placeholder="ອັນ / ເສັ້ນ / ແຜ່ນ" value="ອັນ"></div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button><button class="btn" onclick="saveStock()">ບັນທຶກ</button></div>
+  `);
+}
+function saveStock(){
+  const name = document.getElementById('f_name').value.trim();
+  if(!name) return;
+  state.stock.push({
+    id:nextId(), name,
+    category:document.getElementById('f_cat').value,
+    sku:document.getElementById('f_sku').value || 'SKU-'+nextId(),
+    qty:Number(document.getElementById('f_qty').value)||0,
+    minQty:Number(document.getElementById('f_min').value)||0,
+    cost:Number(document.getElementById('f_cost').value)||0,
+    price:Number(document.getElementById('f_price').value)||0,
+    unit:document.getElementById('f_unit').value || 'ອັນ',
+  });
+  closeModal(); render();
+}
+
+/* ================= JOBS - status & tracking (3) ================= */
+let jobFilter = 'ທັງໝົດ';
+function viewJobs(){
+  const filters = ['ທັງໝົດ', ...STATUS_FLOW, 'ຍົກເລີກ'];
+  const jobs = state.jobs.filter(j=>jobFilter==='ທັງໝົດ'? true : j.status===jobFilter)
+                          .sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  afterRenderHooks = () => {};
+  return `
+  <div class="topbar">
+    <div><h2>ອັບເດດສະຖານະ &amp; ຕິດຕາມງານສ້ອມ</h2><div class="sub">ເບິ່ງຄວາມຄືບໜ້າງານສ້ອມທຸກໃບ ພ້ອມປະຫວັດການປ່ຽນສະຖານະ</div></div>
+    <button class="btn" onclick="goTab('queue')">+ ຮັບງານໃໝ່</button>
+  </div>
+
+  <div class="tabs-inline">
+    ${filters.map(f=>`<button class="${jobFilter===f?'active':''}" onclick="setJobFilter('${f}')">${f}</button>`).join('')}
+  </div>
+
+  ${jobs.length? jobs.map(j=>jobDetailCard(j)).join('') : `<div class="empty"><div class="big">🔧</div>ບໍ່ພົບງານໃນສະຖານະນີ້</div>`}
+  `;
+}
+function setJobFilter(f){ jobFilter = f; render(); }
+
+function jobDetailCard(j){
+  const stepIdx = STATUS_FLOW.indexOf(j.status);
+  const pct = j.status==='ຍົກເລີກ' ? 100 : Math.max(6, Math.round(((stepIdx+1)/STATUS_FLOW.length)*100));
+  return `
+  <div class="card" style="margin-bottom:14px;">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div class="tno" style="color:var(--gold);font-size:12px;font-weight:700;letter-spacing:2px;">ໃບງານ #${j.id} · ຄິວ #${j.queue}</div>
+        <h4 style="font-size:18px;margin-top:2px;">${j.phone} — ${j.customer}</h4>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:2px;">ອາການ: ${j.issue}</div>
+      </div>
+      <div style="text-align:right;">
+        <span class="badge ${STATUS_COLOR[j.status]}">${j.status}</span>
+        <div style="font-size:13px;margin-top:6px;">ຄ່າສ້ອມ ₭${thb(j.price)} ${j.deposit? '(ມັດຈຳ ₭'+thb(j.deposit)+')':''}</div>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+      ${j.status!=='ຍົກເລີກ' && j.status!=='ຮັບເຄື່ອງຄືນແລ້ວ' ? nextStatusButtons(j) : ''}
+      <button class="btn sm ghost" onclick="openHistoryModal(${j.id})">📜 ເບິ່ງປະຫວັດ</button>
+    </div>
+  </div>`;
+}
+function nextStatusButtons(j){
+  const idx = STATUS_FLOW.indexOf(j.status);
+  const next = STATUS_FLOW[idx+1];
+  let btns = '';
+  if(next) btns += `<button class="btn sm" onclick="updateJobStatus(${j.id},'${next}')">➜ ປ່ຽນເປັນ "${next}"</button>`;
+  btns += `<button class="btn sm outline" onclick="updateJobStatus(${j.id},'ຍົກເລີກ')">ຍົກເລີກງານ</button>`;
+  return btns;
+}
+function openHistoryModal(id){
+  const j = state.jobs.find(x=>x.id===id);
+  openModal(`
+    <div class="modal-head"><h3>ປະຫວັດງານ #${j.id}</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      ${j.history.map(h=>`
+        <div style="border-left:2px solid var(--accent);padding-left:12px;padding-bottom:10px;">
+          <div style="font-weight:600;">${h.status}</div>
+          <div style="font-size:12px;color:var(--text-dim)">${formatLaoDate(h.time)} ${h.note?('· '+h.note):''}</div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ປິດ</button></div>
+  `);
+}
+
+function addJob(data, rerender=true){
+  const id = nextId();
+  const queue = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).length + 1;
+  const job = {
+    id, ticketNo:id, customer:data.customer, phone:data.phone, issue:data.issue,
+    price:Number(data.price)||0, deposit:Number(data.deposit)||0,
+    status:'ຮັບເຄື່ອງ', queue, createdAt:today(), updatedAt:today(),
+    history:[{time:today(), status:'ຮັບເຄື່ອງ', note:'ເປີດໃບງານໃໝ່'}],
+  };
+  state.jobs.push(job);
+  logNotification(job, `ແຈ້ງເຕືອນລູກຄ້າ: ຮັບເຄື່ອງ ${job.phone} ຂອງທ່ານເຂົ້າລະບົບແລ້ວ ເລກທີໃບງານ #${job.id}`);
+  if(rerender) render();
+  return job;
+}
+
+function updateJobStatus(id, status, rerender=true){
+  const j = state.jobs.find(x=>x.id===id);
+  if(!j) return;
+  j.status = status; j.updatedAt = today();
+  j.history.push({time:today(), status, note:''});
+  const msgMap = {
+    'ກຳລັງກວດເຊັກ': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງຢູ່ໃນຂັ້ນຕອນການກວດເຊັກອາການ`,
+    'ລໍຖ້າອາໄຫລ່': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງລໍຖ້າອາໄຫລ່ ທາງຮ້ານຈະແຈ້ງຄວາມຄືບໜ້າອີກຄັ້ງ`,
+    'ກຳລັງສ້ອມ': `ຊ່າງເລີ່ມດຳເນີນການສ້ອມ ${j.phone} ຂອງທ່ານແລ້ວ`,
+    'ສ້ອມແລ້ວ': `ເຄື່ອງ ${j.phone} ຂອງທ່ານສ້ອມແລ້ວ ພ້ອມໃຫ້ມາຮັບທີ່ຮ້ານ ຄ່າສ້ອມ ₭${thb(j.price)}`,
+    'ແຈ້ງລູກຄ້າແລ້ວ': `ແຈ້ງລູກຄ້າຮຽບຮ້ອຍ ລໍຖ້າລູກຄ້າມາຮັບເຄື່ອງ ${j.phone}`,
+    'ຮັບເຄື່ອງຄືນແລ້ວ': `ລູກຄ້າຮັບເຄື່ອງ ${j.phone} ຄືນຮຽບຮ້ອຍແລ້ວ ຂອບໃຈທີ່ໃຊ້ບໍລິການ`,
+    'ຍົກເລີກ': `ໃບງານສ້ອມ ${j.phone} ຖືກຍົກເລີກ`,
+  };
+  if(msgMap[status]) logNotification(j, msgMap[status]);
+  if(['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(status)) reindexQueue();
+  if(rerender) render();
+}
+function logNotification(job, message){
+  state.notifLog.push({id:nextId(), jobId:job.id, customer:job.customer, message, time:new Date().toISOString(), channel:'LINE OA / SMS'});
+}
+
+/* ================= QUEUE (4) ================= */
+function viewQueue(){
+  const active = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).sort((a,b)=>a.queue-b.queue);
+  afterRenderHooks = () => {};
+  return `
+  <div class="topbar">
+    <div><h2>ຮັບອໍເດີ &amp; ຈັດຄິວງານ</h2><div class="sub">ເປີດໃບງານໃໝ່ ແລະ ຈັດລຳດັບຄິວສ້ອມຂອງຊ່າງ</div></div>
+    <button class="btn" onclick="openNewOrderForm()">+ ຮັບອໍເດີໃໝ່</button>
+  </div>
+
+  <div class="card">
+    ${active.length? active.map((j,i)=>`
+      <div class="queue-row">
+        <div class="queue-num">${j.queue}</div>
+        <div class="queue-info">
+          <div class="name">${j.phone} — ${j.customer}</div>
+          <div class="sub">${j.issue} · <span class="badge ${STATUS_COLOR[j.status]}" style="margin-left:4px;">${j.status}</span></div>
+        </div>
+        <div class="queue-actions">
+          <button class="iconbtn" onclick="moveQueue(${j.id},-1)" ${i===0?'disabled':''}>↑</button>
+          <button class="iconbtn" onclick="moveQueue(${j.id},1)" ${i===active.length-1?'disabled':''}>↓</button>
+        </div>
+      </div>
+    `).join('') : `<div class="empty"><div class="big">📋</div>ຍັງບໍ່ມີຄິວງານ</div>`}
+  </div>
+  `;
+}
+function moveQueue(id, dir){
+  const active = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).sort((a,b)=>a.queue-b.queue);
+  const idx = active.findIndex(j=>j.id===id);
+  const swapIdx = idx+dir;
+  if(swapIdx<0 || swapIdx>=active.length) return;
+  const tmp = active[idx].queue;
+  active[idx].queue = active[swapIdx].queue;
+  active[swapIdx].queue = tmp;
+  render();
+}
+function reindexQueue(){
+  const active = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).sort((a,b)=>a.queue-b.queue);
+  active.forEach((j,i)=>j.queue=i+1);
+}
+function openNewOrderForm(){
+  openModal(`
+    <div class="modal-head"><h3>ຮັບອໍເດີໃໝ່</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div class="field"><label>ຊື່ລູກຄ້າ</label><input id="o_customer" placeholder="ເຊັ່ນ ນາງ ສົມຫຍິງ"></div>
+      <div class="field"><label>ຮຸ່ນໂທລະສັບ</label><input id="o_phone" placeholder="ເຊັ່ນ iPhone 13"></div>
+      <div class="field"><label>ອາການ / ງານທີ່ຕ້ອງເຮັດ</label><textarea id="o_issue" rows="2" placeholder="ເຊັ່ນ ໜ້າຈໍແຕກ ປ່ຽນແບັດ ຯລຯ"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>ຄ່າບໍລິການໂດຍປະມານ (ກີບ)</label><input id="o_price" type="number" value="0"></div>
+        <div class="field"><label>ເງິນມັດຈຳ (ກີບ)</label><input id="o_deposit" type="number" value="0"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button><button class="btn" onclick="saveNewOrder()">ເປີດໃບງານ</button></div>
+  `);
+}
+function saveNewOrder(){
+  const customer = document.getElementById('o_customer').value.trim();
+  const phone = document.getElementById('o_phone').value.trim();
+  if(!customer || !phone) return;
+  addJob({
+    customer, phone,
+    issue: document.getElementById('o_issue').value.trim() || 'ກວດເຊັກທົ່ວໄປ',
+    price: document.getElementById('o_price').value,
+    deposit: document.getElementById('o_deposit').value,
+  }, false);
+  closeModal(); goTab('queue');
+}
+
+/* ================= NOTIFY (5) ================= */
+function viewNotify(){
+  const log = [...state.notifLog].reverse();
+  afterRenderHooks = () => {};
+  return `
+  <div class="topbar">
+    <div><h2>ແຈ້ງເຕືອນສະຖານະງານໃຫ້ລູກຄ້າຮູ້</h2><div class="sub">ປະຫວັດການສົ່ງແຈ້ງເຕືອນອັດຕະໂນມັດ ເມື່ອສະຖານະງານປ່ຽນ (ຈຳລອງຜ່ານ LINE OA / SMS)</div></div>
+  </div>
+
+  <div class="grid cols-3">
+    <div class="card stat"><div class="label">ຂໍ້ຄວາມທີ່ສົ່ງທັງໝົດ</div><div class="value">${state.notifLog.length}</div></div>
+    <div class="card stat"><div class="label">ງານທີ່ລໍຖ້າແຈ້ງລູກຄ້າ</div><div class="value">${state.jobs.filter(j=>j.status==='ສ້ອມແລ້ວ').length}</div></div>
+    <div class="card stat"><div class="label">ຊ່ອງທາງທີ່ໃຊ້ງານ</div><div class="value" style="font-size:16px;">LINE OA · SMS</div></div>
+  </div>
+
+  ${state.jobs.filter(j=>j.status==='ສ້ອມແລ້ວ').length ? `
+  <div class="section-title"><span>ງານທີ່ສ້ອມແລ້ວ ລໍຖ້າແຈ້ງລູກຄ້າມາຮັບ</span><div class="line"></div></div>
+  <div class="grid cols-3">
+    ${state.jobs.filter(j=>j.status==='ສ້ອມແລ້ວ').map(j=>`
+      <div class="card">
+        <div style="font-weight:600;">${j.phone} — ${j.customer}</div>
+        <div style="font-size:12.5px;color:var(--text-dim);margin:6px 0 10px;">ຄ່າສ້ອມ ₭${thb(j.price)}</div>
+        <button class="btn sm" style="width:100%;" onclick="updateJobStatus(${j.id},'ແຈ້ງລູກຄ້າແລ້ວ')">🔔 ສົ່ງແຈ້ງເຕືອນລູກຄ້າ</button>
+      </div>`).join('')}
+  </div>` : ''}
+
+  <div class="section-title"><span>ປະຫວັດການແຈ້ງເຕືອນ</span><div class="line"></div></div>
+  <div class="card" style="padding:6px 0;">
+    ${log.length? log.map(n=>`
+      <div class="notif-item">
+        <div class="dot"></div>
+        <div class="body">
+          <div class="msg"><b>${n.customer}</b> — ${n.message}</div>
+          <div class="when">${n.channel} · ${new Date(n.time).toLocaleString('en-GB')}</div>
+        </div>
+      </div>`).join('') : `<div class="empty">ຍັງບໍ່ມີປະຫວັດການແຈ້ງເຕືອນ</div>`}
+  </div>
+  `;
+}
+
+/* ================= ACCOUNTING (6) ================= */
+let acctView = 'month';
+function computeIncomeExpense(periodKeyFn, periodValue){
+  let income=0, cost=0;
+  state.sales.forEach(s=>{ if(periodKeyFn(s.date)===periodValue){
+    income += s.total; cost += s.items.reduce((a,b)=>a+(b.cost||0)*b.qty,0);
+  }});
+  state.jobs.forEach(j=>{ if(j.status==='ຮັບເຄື່ອງຄືນແລ້ວ' && periodKeyFn(j.updatedAt)===periodValue){ income += j.price; } });
+  let expense=0;
+  state.expenses.forEach(e=>{ if(periodKeyFn(e.date)===periodValue) expense += e.amount; });
+  return {income, cost, expense, profit: income - cost - expense};
+}
+function computeProfit(monthValue){ return computeIncomeExpense(monthKey, monthValue).profit; }
+
+function monthlySeries(n){
+  const labels=[]; const income=[]; const costExp=[];
+  for(let i=n-1;i>=0;i--){
+    const d = new Date(); d.setMonth(d.getMonth()-i);
+    const key = d.toISOString().slice(0,7);
+    const {income:inc, cost, expense} = computeIncomeExpense(monthKey, key);
+    labels.push(key);
+    income.push(inc);
+    costExp.push(cost+expense);
+  }
+  return {labels, income, costExp};
+}
+
+function viewAccounting(){
+  const periodFn = acctView==='month' ? monthKey : yearKey;
+  const periodValue = acctView==='month' ? monthKey(today()) : yearKey(today());
+  const sum = computeIncomeExpense(periodFn, periodValue);
+
+  const expenseRows = state.expenses.filter(e=>periodFn(e.date)===periodValue);
+
+  afterRenderHooks = () => drawChart('acctChart', monthlySeries(6));
+
+  return `
+  <div class="topbar">
+    <div><h2>ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ-ກຳໄລ</h2><div class="sub">ສະຫລຸບຜົນປະກອບການຮ້ານ ລາຍເດືອນ / ລາຍປີ</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn ghost" onclick="openExpenseForm()">+ ບັນທຶກລາຍຈ່າຍ</button>
+      <button class="btn" onclick="printAccountingSummary()">🖨️ ພິມເອກະສານສະຫລຸບ</button>
+    </div>
+  </div>
+
+  <div class="tabs-inline">
+    <button class="${acctView==='month'?'active':''}" onclick="setAcctView('month')">ລາຍເດືອນ (${monthKey(today())})</button>
+    <button class="${acctView==='year'?'active':''}" onclick="setAcctView('year')">ລາຍປີ (${yearKey(today())})</button>
+  </div>
+
+  <div class="grid cols-4">
+    <div class="card stat"><div class="label">ລາຍຮັບລວມ</div><div class="value">₭${thb(sum.income)}</div></div>
+    <div class="card stat"><div class="label">ຕົ້ນທຶນສິນຄ້າຂາຍ</div><div class="value">₭${thb(sum.cost)}</div></div>
+    <div class="card stat"><div class="label">ລາຍຈ່າຍອື່ນໆ</div><div class="value">₭${thb(sum.expense)}</div></div>
+    <div class="card stat"><div class="label">ກຳໄລສຸດທິ</div><div class="value" style="color:${sum.profit>=0?'#3fbf6b':'var(--accent)'}">₭${thb(sum.profit)}</div></div>
+  </div>
+
+  <div class="section-title"><span>ແນວໂນ້ມລາຍຮັບ-ລາຍຈ່າຍ 6 ເດືອນຫລ້າສຸດ</span><div class="line"></div></div>
+  <div class="card"><canvas id="acctChart" height="90"></canvas></div>
+
+  <div class="section-title"><span>ລາຍການລາຍຈ່າຍໃນງວດນີ້</span><div class="line"></div></div>
+  <div class="card">
+    <table>
+      <tr><th>ວັນທີ</th><th>ໝວດໝູ່</th><th>ລາຍລະອຽດ</th><th>ຈຳນວນເງິນ</th></tr>
+      ${expenseRows.map(e=>`
+        <tr><td>${formatLaoDate(e.date)}</td><td><span class="badge gray">${e.category}</span></td><td>${e.desc}</td><td>₭${thb(e.amount)}</td></tr>
+      `).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--text-dim)">ບໍ່ມີລາຍຈ່າຍໃນງວດນີ້</td></tr>`}
+    </table>
+  </div>
+  <div class="mini-note">ໝາຍເຫດ: ຂໍ້ມູນໃນລະບົບນີ້ເປັນຂໍ້ມູນຕົວຢ່າງສຳລັບສາທິດການເຮັດວຽກ ແລະ ຈະຣີເຊັດເມື່ອຣີເຟຣັດໜ້າເວັບ</div>
+  `;
+}
+function setAcctView(v){ acctView=v; render(); }
+function openExpenseForm(){
+  openModal(`
+    <div class="modal-head"><h3>ບັນທຶກລາຍຈ່າຍ</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div class="field"><label>ໝວດໝູ່</label><input id="e_cat" placeholder="ເຊັ່ນ ຄ່າເຊົ່າຮ້ານ, ຄ່ານ້ຳ-ໄຟ, ຊື້ອາໄຫລ່"></div>
+      <div class="field"><label>ລາຍລະອຽດ</label><input id="e_desc" placeholder="ລາຍລະອຽດລາຍຈ່າຍ"></div>
+      <div class="row2">
+        <div class="field"><label>ວັນທີ</label><input id="e_date" type="date" value="${today()}"></div>
+        <div class="field"><label>ຈຳນວນເງິນ (ກີບ)</label><input id="e_amt" type="number" value="0"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button><button class="btn" onclick="saveExpense()">ບັນທຶກ</button></div>
+  `);
+}
+function saveExpense(){
+  const cat = document.getElementById('e_cat').value.trim();
+  const amt = Number(document.getElementById('e_amt').value)||0;
+  if(!cat || !amt) return;
+  state.expenses.push({id:nextId(), category:cat, desc:document.getElementById('e_desc').value, date:document.getElementById('e_date').value||today(), amount:amt});
+  closeModal(); render();
+}
+
+/* ================= PRINT SUMMARY ================= */
+function printAccountingSummary(){
+  const periodFn = acctView==='month' ? monthKey : yearKey;
+  const periodValue = acctView==='month' ? monthKey(today()) : yearKey(today());
+  const periodLabel = acctView==='month' ? ('ລາຍເດືອນ '+periodValue) : ('ລາຍປີ '+periodValue);
+  const sum = computeIncomeExpense(periodFn, periodValue);
+  const expenseRows = state.expenses.filter(e=>periodFn(e.date)===periodValue);
+  const saleRows = state.sales.filter(s=>periodFn(s.date)===periodValue);
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+  <!DOCTYPE html><html lang="lo"><head><meta charset="UTF-8">
+  <title>ເອກະສານສະຫລຸບບັນຊີ - ${periodLabel}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Lao:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *{font-family:'Noto Serif Lao', serif; box-sizing:border-box;}
+    body{ padding:36px; color:#1a1414; }
+    h1{ font-size:22px; margin-bottom:2px; }
+    .sub{ color:#7a5b58; font-size:13px; margin-bottom:22px; }
+    .brand{ font-size:12px; letter-spacing:3px; color:#b3122d; font-weight:700; margin-bottom:4px; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:13px; }
+    th,td{ border:1px solid #ddd; padding:8px 10px; text-align:left; }
+    th{ background:#f2e8e5; }
+    .summary{ display:flex; gap:14px; margin:18px 0; }
+    .box{ flex:1; border:1px solid #ddd; border-radius:8px; padding:12px; }
+    .box .label{ font-size:12px; color:#7a5b58; }
+    .box .value{ font-size:19px; font-weight:700; margin-top:4px; }
+    .section{ margin-top:26px; font-weight:700; font-size:15px; border-bottom:2px solid #b3122d; padding-bottom:6px;}
+    .foot{ margin-top:36px; font-size:12px; color:#7a5b58; text-align:center; }
+    @media print{ .no-print{ display:none; } }
+  </style>
+  </head><body>
+    <div class="brand">RED &amp; BLACK MOBILE</div>
+    <h1>ເອກະສານສະຫລຸບບັນຊີລາຍຮັບ-ລາຍຈ່າຍ-ກຳໄລ</h1>
+    <div class="sub">ງວດ: ${periodLabel} · ພິມເມື່ອ ${formatLaoDate(today())}</div>
+
+    <div class="summary">
+      <div class="box"><div class="label">ລາຍຮັບລວມ</div><div class="value">₭${thb(sum.income)}</div></div>
+      <div class="box"><div class="label">ຕົ້ນທຶນສິນຄ້າຂາຍ</div><div class="value">₭${thb(sum.cost)}</div></div>
+      <div class="box"><div class="label">ລາຍຈ່າຍອື່ນໆ</div><div class="value">₭${thb(sum.expense)}</div></div>
+      <div class="box"><div class="label">ກຳໄລສຸດທິ</div><div class="value">₭${thb(sum.profit)}</div></div>
+    </div>
+
+    <div class="section">ລາຍການຂາຍໃນງວດນີ້</div>
+    <table>
+      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th></tr>
+      ${saleRows.map(s=>`<tr><td>${formatLaoDate(s.date)}</td><td>${s.customer}</td><td>${s.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td><td>${s.payment}</td><td>₭${thb(s.total)}</td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;">ບໍ່ມີລາຍການຂາຍໃນງວດນີ້</td></tr>'}
+    </table>
+
+    <div class="section">ລາຍການລາຍຈ່າຍໃນງວດນີ້</div>
+    <table>
+      <tr><th>ວັນທີ</th><th>ໝວດໝູ່</th><th>ລາຍລະອຽດ</th><th>ຈຳນວນເງິນ</th></tr>
+      ${expenseRows.map(e=>`<tr><td>${formatLaoDate(e.date)}</td><td>${e.category}</td><td>${e.desc}</td><td>₭${thb(e.amount)}</td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;">ບໍ່ມີລາຍຈ່າຍໃນງວດນີ້</td></tr>'}
+    </table>
+
+    <div class="foot">ເອກະສານນີ້ສ້າງອັດຕະໂນມັດຈາກລະບົບບໍລິຫານຮ້ານ RED &amp; BLACK MOBILE</div>
+    <div class="no-print" style="text-align:center;margin-top:24px;">
+      <button onclick="window.print()" style="padding:10px 22px;border-radius:8px;border:none;background:#b3122d;color:#fff;font-size:14px;cursor:pointer;">🖨️ ພິມເອກະສານ</button>
+    </div>
+  </body></html>
+  `);
+  win.document.close();
+  win.onload = () => { setTimeout(()=>{ win.focus(); win.print(); }, 400); };
+}
+
+/* ================= CHART ================= */
+let chartInstances = {};
+function drawChart(canvasId, series){
+  const el = document.getElementById(canvasId);
+  if(!el || !window.Chart) return;
+  if(chartInstances[canvasId]) chartInstances[canvasId].destroy();
+  const styles = getComputedStyle(document.body);
+  const accent = styles.getPropertyValue('--accent').trim();
+  const gold = '#c9a24a';
+  const textDim = styles.getPropertyValue('--text-dim').trim();
+  chartInstances[canvasId] = new Chart(el.getContext('2d'), {
+    type:'bar',
+    data:{
+      labels:series.labels,
+      datasets:[
+        {label:'ລາຍຮັບ', data:series.income, backgroundColor:accent, borderRadius:6},
+        {label:'ຕົ້ນທຶນ+ລາຍຈ່າຍ', data:series.costExp, backgroundColor:gold, borderRadius:6},
+      ]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ labels:{ color:textDim, font:{family:"'Noto Serif Lao'"} } } },
+      scales:{
+        x:{ ticks:{color:textDim, font:{family:"'Noto Serif Lao'"}}, grid:{display:false} },
+        y:{ ticks:{color:textDim, font:{family:"'Noto Serif Lao'"}}, grid:{color:'rgba(128,128,128,.15)'} },
+      }
+    }
+  });
+}
+
+/* ================= INIT ================= */
+seedJobs();
+setTheme('dark');
+render();
+</script>
+</body>
+</html>
