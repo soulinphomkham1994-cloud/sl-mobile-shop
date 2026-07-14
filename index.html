@@ -218,6 +218,7 @@ tr:hover td{ background:var(--surface-2); }
         <button id="btnDark" onclick="setTheme('dark')">🌙 ມືດ</button>
         <button id="btnLight" onclick="setTheme('light')">☀️ ແຈ້ງ</button>
       </div>
+      <div id="cloudStatus" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:10px;color:var(--text-dim);padding:0 4px;"></div>
     </div>
   </aside>
 
@@ -260,6 +261,23 @@ const state = {
   notifLog: [],
 };
 
+/* ==== WhatsApp notification backend ====
+   ຫລັງຈາກ deploy backend (ເບິ່ງ /api/send-notify.js ແລະ README-whatsapp-integration.md)
+   ໃຫ້ເອົາ URL ທີ່ໄດ້ມາໃສ່ແທນຄ່າ '' ຂ້າງລຸ່ມນີ້ ເຊັ່ນ 'https://your-project.vercel.app/api/send-notify' */
+const NOTIFY_BACKEND_URL = '';
+
+async function sendWhatsAppNotification(job, message){
+  if(!NOTIFY_BACKEND_URL || !job.customerPhone) return;
+  try{
+    const res = await fetch(NOTIFY_BACKEND_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ phone: job.customerPhone, message })
+    });
+    if(!res.ok){ console.warn('WhatsApp notify: server responded with an error', await res.text()); }
+  }catch(err){ console.warn('WhatsApp notify failed (backend URL not reachable or misconfigured)', err); }
+}
+
 const STATUS_FLOW = ['ຮັບເຄື່ອງ','ກຳລັງກວດເຊັກ','ລໍຖ້າອາໄຫລ່','ກຳລັງສ້ອມ','ສ້ອມແລ້ວ','ແຈ້ງລູກຄ້າແລ້ວ','ຮັບເຄື່ອງຄືນແລ້ວ'];
 const STATUS_COLOR = {
   'ຮັບເຄື່ອງ':'gray','ກຳລັງກວດເຊັກ':'gold','ລໍຖ້າອາໄຫລ່':'red','ກຳລັງສ້ອມ':'gold',
@@ -271,6 +289,103 @@ function today(){ return new Date().toISOString().slice(0,10); }
 function thb(n){ return Number(n||0).toLocaleString('en-US', {maximumFractionDigits:0}); }
 function monthKey(dateStr){ return dateStr.slice(0,7); }
 function yearKey(dateStr){ return dateStr.slice(0,4); }
+
+/* ==================================================================
+   ==== ບັນທຶກຂໍ້ມູນຖາວອນຜ່ານ Cloud (Firebase Firestore) ====
+   1. ໄປສ້າງໂປຣເຈັກຟຣີທີ່ https://console.firebase.google.com
+   2. ເປີດໃຊ້ "Firestore Database" (ເລືອກໂໝດ production ຫລື test ກໍ່ໄດ້)
+   3. ໄປ Project settings → ເລືອກ Web App (</>) → copy "firebaseConfig" ມາວາງແທນຄ່າຂ້າງລຸ່ມ
+   4. ຖ້າຍັງບໍ່ໄດ້ຕັ້ງຄ່າ (apiKey ຍັງເປັນ 'YOUR_API_KEY') ລະບົບຈະເຮັດວຽກແບບເກັບຂໍ້ມູນ
+      ຊົ່ວຄາວໃນໜ່ວຍຄວາມຈຳຂອງ browser ຄືເດີມ (ຣີເຟຣັດແລ້ວຂໍ້ມູນຫາຍ)
+   ================================================================== */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
+};
+
+let cloudEnabled = false;
+let firestoreDocRef = null;
+let firestoreSetDoc = null;
+let firestoreOnSnapshot = null;
+let receivingRemoteUpdate = false;
+let cloudReady = false;
+
+async function initCloudSync(){
+  if(!firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY'){
+    setCloudStatus('offline');
+    return; // ຍັງບໍ່ໄດ້ຕັ້ງຄ່າ Firebase — ໃຊ້ງານແບບຊົ່ວຄາວໃນເຄື່ອງ
+  }
+  try{
+    setCloudStatus('connecting');
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getFirestore, doc, setDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    firestoreDocRef = doc(db, 'shopData', 'main');
+    firestoreSetDoc = setDoc;
+    cloudEnabled = true;
+
+    onSnapshot(firestoreDocRef, (snap) => {
+      if(snap.exists()){
+        const data = snap.data();
+        receivingRemoteUpdate = true;
+        if(data.stock) state.stock = data.stock;
+        if(data.phones) state.phones = data.phones;
+        if(data.sales) state.sales = data.sales;
+        if(data.jobs) state.jobs = data.jobs;
+        if(data.expenses) state.expenses = data.expenses;
+        if(data.notifLog) state.notifLog = data.notifLog;
+        if(typeof data.uid === 'number') uid = Math.max(uid, data.uid);
+        cloudReady = true;
+        setCloudStatus('online');
+        render();
+        receivingRemoteUpdate = false;
+      } else {
+        // ຄັ້ງທຳອິດ ຍັງບໍ່ມີເອກະສານໃນ cloud → ສົ່ງຂໍ້ມູນຕົວຢ່າງປັດຈຸບັນຂຶ້ນໄປເປັນຄ່າເລີ່ມຕົ້ນ
+        cloudReady = true;
+        setCloudStatus('online');
+        persistState();
+      }
+    }, (err) => {
+      console.warn('Firestore listen error', err);
+      setCloudStatus('error');
+    });
+  }catch(err){
+    console.warn('ເຊື່ອມຕໍ່ Firebase ບໍ່ສຳເລັດ', err);
+    setCloudStatus('error');
+  }
+}
+
+async function persistState(){
+  if(!cloudEnabled || !firestoreDocRef || receivingRemoteUpdate) return;
+  try{
+    await firestoreSetDoc(firestoreDocRef, {
+      stock: state.stock, phones: state.phones, sales: state.sales,
+      jobs: state.jobs, expenses: state.expenses, notifLog: state.notifLog,
+      uid, updatedAt: new Date().toISOString(),
+    });
+  }catch(err){
+    console.warn('ບັນທຶກຂໍ້ມູນຂຶ້ນ cloud ບໍ່ສຳເລັດ', err);
+    setCloudStatus('error');
+  }
+}
+
+function setCloudStatus(s){
+  const el = document.getElementById('cloudStatus');
+  if(!el) return;
+  const map = {
+    offline: {icon:'💾', text:'ບັນທຶກໃນເຄື່ອງ (ອອຟລາຍ)', color:'var(--text-dim)'},
+    connecting: {icon:'☁️', text:'ກຳລັງເຊື່ອມຕໍ່...', color:'var(--gold)'},
+    online: {icon:'☁️', text:'ເຊື່ອມຕໍ່ Cloud ແລ້ວ', color:'#3fbf6b'},
+    error: {icon:'⚠️', text:'ເຊື່ອມຕໍ່ Cloud ບໍ່ສຳເລັດ', color:'var(--accent)'},
+  };
+  const m = map[s] || map.offline;
+  el.innerHTML = `<span>${m.icon}</span><span style="color:${m.color}">${m.text}</span>`;
+}
 
 /* seed a few example jobs */
 function seedJobs(){
@@ -496,7 +611,7 @@ function checkoutSale(){
     }
   });
   saleCart = [];
-  render();
+  render(); persistState();
 }
 
 /* ================= STOCK (2) ================= */
@@ -549,9 +664,9 @@ function viewStock(){
 function adjustStock(id,d){
   const s = state.stock.find(x=>x.id===id);
   if(s) s.qty = Math.max(0, s.qty+d);
-  render();
+  render(); persistState();
 }
-function deleteStock(id){ state.stock = state.stock.filter(s=>s.id!==id); render(); }
+function deleteStock(id){ state.stock = state.stock.filter(s=>s.id!==id); render(); persistState(); }
 function openStockForm(){
   openModal(`
     <div class="modal-head"><h3>ເພີ່ມລາຍການສະຕັອກ</h3><span onclick="closeModal()">✕</span></div>
@@ -587,7 +702,7 @@ function saveStock(){
     price:Number(document.getElementById('f_price').value)||0,
     unit:document.getElementById('f_unit').value || 'ອັນ',
   });
-  closeModal(); render();
+  closeModal(); render(); persistState();
 }
 
 /* ================= JOBS - status & tracking (3) ================= */
@@ -664,13 +779,14 @@ function addJob(data, rerender=true){
   const queue = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).length + 1;
   const job = {
     id, ticketNo:id, customer:data.customer, phone:data.phone, issue:data.issue,
+    customerPhone:data.customerPhone||'',
     price:Number(data.price)||0, deposit:Number(data.deposit)||0,
     status:'ຮັບເຄື່ອງ', queue, createdAt:today(), updatedAt:today(),
     history:[{time:today(), status:'ຮັບເຄື່ອງ', note:'ເປີດໃບງານໃໝ່'}],
   };
   state.jobs.push(job);
   logNotification(job, `ແຈ້ງເຕືອນລູກຄ້າ: ຮັບເຄື່ອງ ${job.phone} ຂອງທ່ານເຂົ້າລະບົບແລ້ວ ເລກທີໃບງານ #${job.id}`);
-  if(rerender) render();
+  if(rerender){ render(); persistState(); }
   return job;
 }
 
@@ -690,10 +806,11 @@ function updateJobStatus(id, status, rerender=true){
   };
   if(msgMap[status]) logNotification(j, msgMap[status]);
   if(['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(status)) reindexQueue();
-  if(rerender) render();
+  if(rerender){ render(); persistState(); }
 }
 function logNotification(job, message){
-  state.notifLog.push({id:nextId(), jobId:job.id, customer:job.customer, message, time:new Date().toISOString(), channel:'LINE OA / SMS'});
+  state.notifLog.push({id:nextId(), jobId:job.id, customer:job.customer, message, time:new Date().toISOString(), channel: job.customerPhone ? 'WhatsApp' : 'LINE OA / SMS (ບໍ່ໄດ້ໃສ່ເບີ)'});
+  sendWhatsAppNotification(job, message);
 }
 
 /* ================= QUEUE (4) ================= */
@@ -731,7 +848,7 @@ function moveQueue(id, dir){
   const tmp = active[idx].queue;
   active[idx].queue = active[swapIdx].queue;
   active[swapIdx].queue = tmp;
-  render();
+  render(); persistState();
 }
 function reindexQueue(){
   const active = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).sort((a,b)=>a.queue-b.queue);
@@ -742,6 +859,7 @@ function openNewOrderForm(){
     <div class="modal-head"><h3>ຮັບອໍເດີໃໝ່</h3><span onclick="closeModal()">✕</span></div>
     <div class="modal-body">
       <div class="field"><label>ຊື່ລູກຄ້າ</label><input id="o_customer" placeholder="ເຊັ່ນ ນາງ ສົມຫຍິງ"></div>
+      <div class="field"><label>ເບີ WhatsApp ລູກຄ້າ (ສຳລັບແຈ້ງເຕືອນ)</label><input id="o_customer_phone" placeholder="ເຊັ່ນ 8562099999999 (ໃສ່ລະຫັດປະເທດ ບໍ່ຕ້ອງມີ +)"></div>
       <div class="field"><label>ຮຸ່ນໂທລະສັບ</label><input id="o_phone" placeholder="ເຊັ່ນ iPhone 13"></div>
       <div class="field"><label>ອາການ / ງານທີ່ຕ້ອງເຮັດ</label><textarea id="o_issue" rows="2" placeholder="ເຊັ່ນ ໜ້າຈໍແຕກ ປ່ຽນແບັດ ຯລຯ"></textarea></div>
       <div class="row2">
@@ -758,11 +876,12 @@ function saveNewOrder(){
   if(!customer || !phone) return;
   addJob({
     customer, phone,
+    customerPhone: document.getElementById('o_customer_phone').value.trim(),
     issue: document.getElementById('o_issue').value.trim() || 'ກວດເຊັກທົ່ວໄປ',
     price: document.getElementById('o_price').value,
     deposit: document.getElementById('o_deposit').value,
   }, false);
-  closeModal(); goTab('queue');
+  closeModal(); goTab('queue'); persistState();
 }
 
 /* ================= NOTIFY (5) ================= */
@@ -897,7 +1016,7 @@ function saveExpense(){
   const amt = Number(document.getElementById('e_amt').value)||0;
   if(!cat || !amt) return;
   state.expenses.push({id:nextId(), category:cat, desc:document.getElementById('e_desc').value, date:document.getElementById('e_date').value||today(), amount:amt});
-  closeModal(); render();
+  closeModal(); render(); persistState();
 }
 
 /* ================= PRINT SUMMARY ================= */
@@ -999,6 +1118,8 @@ function drawChart(canvasId, series){
 seedJobs();
 setTheme('dark');
 render();
+setCloudStatus('offline');
+initCloudSync();
 </script>
 </body>
 </html>

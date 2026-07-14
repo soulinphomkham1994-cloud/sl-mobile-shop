@@ -1,0 +1,6 @@
+{
+  "name": "mobile-shop-whatsapp-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend serverless function ສຳລັບສົ່ງແຈ້ງເຕືອນລູກຄ້າຜ່ານ WhatsApp Business API (Meta Cloud API)"
+}
