@@ -261,21 +261,17 @@ const state = {
   notifLog: [],
 };
 
-/* ==== WhatsApp notification backend ====
-   ຫລັງຈາກ deploy backend (ເບິ່ງ /api/send-notify.js ແລະ README-whatsapp-integration.md)
-   ໃຫ້ເອົາ URL ທີ່ໄດ້ມາໃສ່ແທນຄ່າ '' ຂ້າງລຸ່ມນີ້ ເຊັ່ນ 'https://your-project.vercel.app/api/send-notify' */
-const NOTIFY_BACKEND_URL = '';
-
-async function sendWhatsAppNotification(job, message){
-  if(!NOTIFY_BACKEND_URL || !job.customerPhone) return;
-  try{
-    const res = await fetch(NOTIFY_BACKEND_URL, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ phone: job.customerPhone, message })
-    });
-    if(!res.ok){ console.warn('WhatsApp notify: server responded with an error', await res.text()); }
-  }catch(err){ console.warn('WhatsApp notify failed (backend URL not reachable or misconfigured)', err); }
+/* ==== ແຈ້ງເຕືອນລູກຄ້າຜ່ານ WhatsApp (ແບບບໍ່ຕ້ອງມີ backend/API) ====
+   ໃຊ້ລິ້ງ wa.me ເປີດໜ້າແຊັດ WhatsApp ຂອງລູກຄ້າໂດຍກົງ ພ້ອມຂໍ້ຄວາມທີ່ຕັ້ງໄວ້ລ່ວງໜ້າ
+   ຜູ້ໃຊ້ (ຮ້ານ) ຈະເປັນຄົນກົດ "ສົ່ງ" ເອງໃນ WhatsApp ອີກເທື່ອໜຶ່ງ (ບໍ່ໄດ້ສົ່ງອັດຕະໂນມັດ) */
+function cleanPhone(phone){ return (phone||'').replace(/[^0-9]/g,''); }
+function waLink(phone, message){
+  const p = cleanPhone(phone);
+  return `https://wa.me/${p}?text=${encodeURIComponent(message||'')}`;
+}
+function openWhatsApp(phone, message){
+  if(!cleanPhone(phone)) return;
+  window.open(waLink(phone, message), '_blank');
 }
 
 const STATUS_FLOW = ['ຮັບເຄື່ອງ','ກຳລັງກວດເຊັກ','ລໍຖ້າອາໄຫລ່','ກຳລັງສ້ອມ','ສ້ອມແລ້ວ','ແຈ້ງລູກຄ້າແລ້ວ','ຮັບເຄື່ອງຄືນແລ້ວ'];
@@ -299,13 +295,12 @@ function yearKey(dateStr){ return dateStr.slice(0,4); }
       ຊົ່ວຄາວໃນໜ່ວຍຄວາມຈຳຂອງ browser ຄືເດີມ (ຣີເຟຣັດແລ້ວຂໍ້ມູນຫາຍ)
    ================================================================== */
 const firebaseConfig = {
-  apiKey: "AIzaSyCDoSdmkjJs5NpOJHnZYDp0RzrpppEulDQ",
-  authDomain: "sl-mobile-shop.firebaseapp.com",
-  projectId: "sl-mobile-shop",
-  storageBucket: "sl-mobile-shop.firebasestorage.app",
-  messagingSenderId: "380018412931",
-  appId: "1:380018412931:web:dd0849e2d44d3b94917ab6",
-
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID",
 };
 
 let cloudEnabled = false;
@@ -566,10 +561,13 @@ function viewSales(){
     </div>
   </div>
 
-  <div class="section-title"><span>ປະຫວັດການຂາຍຫລ້າສຸດ</span><div class="line"></div></div>
+  <div class="section-title">
+    <span>ປະຫວັດການຂາຍຫລ້າສຸດ</span><div class="line"></div>
+    ${state.sales.length? `<button class="btn sm outline" onclick="clearAllSales()">🗑️ ລ້າງລາຍການທັງໝົດ</button>` : ''}
+  </div>
   <div class="card">
     <table>
-      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th></tr>
+      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th><th></th></tr>
       ${[...state.sales].reverse().map(s=>`
         <tr>
           <td>${formatLaoDate(s.date)}</td>
@@ -577,10 +575,22 @@ function viewSales(){
           <td>${s.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
           <td><span class="badge gray">${s.payment}</span></td>
           <td style="font-weight:700;">₭${thb(s.total)}</td>
-        </tr>`).join('') || `<tr><td colspan="5" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີປະຫວັດການຂາຍ</td></tr>`}
+          <td><button class="iconbtn" onclick="deleteSale(${s.id})" title="ລຶບລາຍການນີ້">✕</button></td>
+        </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີປະຫວັດການຂາຍ</td></tr>`}
     </table>
   </div>
   `;
+}
+
+function deleteSale(id){
+  if(!confirm('ຢືນຢັນລຶບລາຍການຂາຍນີ້ອອກ? (ຈະບໍ່ຄືນສະຕັອກ/ສະຖານະເຄື່ອງໃຫ້ອັດຕະໂນມັດ)')) return;
+  state.sales = state.sales.filter(s=>s.id!==id);
+  render(); persistState();
+}
+function clearAllSales(){
+  if(!confirm('ຢືນຢັນລ້າງປະຫວັດການຂາຍທັງໝົດ? ຂໍ້ມູນຈະຫາຍໄປຖາວອນ')) return;
+  state.sales = [];
+  render(); persistState();
 }
 
 function addToCart(item){
@@ -748,6 +758,7 @@ function jobDetailCard(j){
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
       ${j.status!=='ຍົກເລີກ' && j.status!=='ຮັບເຄື່ອງຄືນແລ້ວ' ? nextStatusButtons(j) : ''}
+      <button class="btn sm outline" onclick="openWaModal(${j.id})">📲 WhatsApp ຫາລູກຄ້າ</button>
       <button class="btn sm ghost" onclick="openHistoryModal(${j.id})">📜 ເບິ່ງປະຫວັດ</button>
     </div>
   </div>`;
@@ -775,6 +786,63 @@ function openHistoryModal(id){
   `);
 }
 
+function openWaModal(jobId){
+  const j = state.jobs.find(x=>x.id===jobId);
+  if(!j) return;
+  if(!cleanPhone(j.customerPhone)){
+    openModal(`
+      <div class="modal-head"><h3>ຍັງບໍ່ມີເບີໂທລູກຄ້າ</h3><span onclick="closeModal()">✕</span></div>
+      <div class="modal-body">
+        <div style="color:var(--text-dim);font-size:14px;">
+          ໃບງານ #${j.id} (${j.customer}) ຍັງບໍ່ໄດ້ບັນທຶກເບີ WhatsApp ໄວ້.
+          ສາມາດເພີ່ມເບີໄດ້ ໂດຍກົດ "ແກ້ໄຂເບີໂທ" ຂ້າງລຸ່ມ.
+        </div>
+        <div class="field"><label>ເບີ WhatsApp ລູກຄ້າ</label><input id="wa_add_phone" placeholder="ເຊັ່ນ 8562099999999"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button>
+        <button class="btn" onclick="saveJobPhoneAndOpenWa(${j.id})">ບັນທຶກ ແລະ ເປີດ WhatsApp</button>
+      </div>
+    `);
+    return;
+  }
+  const defaultMsg = statusMessage(j, j.status) || `ສະບາຍດີ ${j.customer} ກ່ຽວກັບເຄື່ອງ ${j.phone} ຂອງທ່ານ (ໃບງານ #${j.id})`;
+  openModal(`
+    <div class="modal-head"><h3>ສົ່ງຂໍ້ຄວາມຫາ ${j.customer}</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text-dim);">ເບີ: ${j.customerPhone}</div>
+      <div class="field">
+        <label>ຂໍ້ຄວາມ (ແກ້ໄຂໄດ້ກ່ອນສົ່ງ)</label>
+        <textarea id="wa_message" rows="5">${defaultMsg}</textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button>
+      <button class="btn" onclick="sendWaFromModal(${j.id})">📲 ເປີດ WhatsApp ສົ່ງຂໍ້ຄວາມ</button>
+    </div>
+  `);
+}
+function sendWaFromModal(jobId){
+  const j = state.jobs.find(x=>x.id===jobId);
+  const msg = document.getElementById('wa_message').value;
+  openWhatsApp(j.customerPhone, msg);
+  logNotification(j, msg);
+  if(j.status==='ສ້ອມແລ້ວ'){
+    j.status = 'ແຈ້ງລູກຄ້າແລ້ວ'; j.updatedAt = today();
+    j.history.push({time:today(), status:'ແຈ້ງລູກຄ້າແລ້ວ', note:'ສົ່ງຜ່ານ WhatsApp'});
+  }
+  closeModal(); render(); persistState();
+}
+function saveJobPhoneAndOpenWa(jobId){
+  const j = state.jobs.find(x=>x.id===jobId);
+  const phone = document.getElementById('wa_add_phone').value.trim();
+  if(!cleanPhone(phone)) return;
+  j.customerPhone = phone;
+  persistState();
+  openWaModal(jobId);
+}
+
+
 function addJob(data, rerender=true){
   const id = nextId();
   const queue = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).length + 1;
@@ -791,27 +859,31 @@ function addJob(data, rerender=true){
   return job;
 }
 
+function statusMessage(j, status){
+  const msgMap = {
+    'ຮັບເຄື່ອງ': `ຮ້ານໄດ້ຮັບເຄື່ອງ ${j.phone} ຂອງທ່ານເຂົ້າລະບົບແລ້ວ ເລກທີໃບງານ #${j.id}`,
+    'ກຳລັງກວດເຊັກ': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງຢູ່ໃນຂັ້ນຕອນການກວດເຊັກອາການ`,
+    'ລໍຖ້າອາໄຫລ່': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງລໍຖ້າອາໄຫລ່ ທາງຮ້ານຈະແຈ້ງຄວາມຄືບໜ້າອີກຄັ້ງ`,
+    'ກຳລັງສ້ອມ': `ຊ່າງເລີ່ມດຳເນີນການສ້ອມ ${j.phone} ຂອງທ່ານແລ້ວ`,
+    'ສ້ອມແລ້ວ': `ສະບາຍດີ ${j.customer} ເຄື່ອງ ${j.phone} ຂອງທ່ານສ້ອມແລ້ວ ພ້ອມໃຫ້ມາຮັບທີ່ຮ້ານໄດ້ເລີຍ ຄ່າສ້ອມ ₭${thb(j.price)} — ຂອບໃຈທີ່ໃຊ້ບໍລິການ RED & BLACK MOBILE`,
+    'ແຈ້ງລູກຄ້າແລ້ວ': `ແຈ້ງລູກຄ້າຮຽບຮ້ອຍ ລໍຖ້າລູກຄ້າມາຮັບເຄື່ອງ ${j.phone}`,
+    'ຮັບເຄື່ອງຄືນແລ້ວ': `ລູກຄ້າຮັບເຄື່ອງ ${j.phone} ຄືນຮຽບຮ້ອຍແລ້ວ ຂອບໃຈທີ່ໃຊ້ບໍລິການ`,
+    'ຍົກເລີກ': `ໃບງານສ້ອມ ${j.phone} ຖືກຍົກເລີກ`,
+  };
+  return msgMap[status] || '';
+}
 function updateJobStatus(id, status, rerender=true){
   const j = state.jobs.find(x=>x.id===id);
   if(!j) return;
   j.status = status; j.updatedAt = today();
   j.history.push({time:today(), status, note:''});
-  const msgMap = {
-    'ກຳລັງກວດເຊັກ': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງຢູ່ໃນຂັ້ນຕອນການກວດເຊັກອາການ`,
-    'ລໍຖ້າອາໄຫລ່': `ເຄື່ອງ ${j.phone} ຂອງທ່ານກຳລັງລໍຖ້າອາໄຫລ່ ທາງຮ້ານຈະແຈ້ງຄວາມຄືບໜ້າອີກຄັ້ງ`,
-    'ກຳລັງສ້ອມ': `ຊ່າງເລີ່ມດຳເນີນການສ້ອມ ${j.phone} ຂອງທ່ານແລ້ວ`,
-    'ສ້ອມແລ້ວ': `ເຄື່ອງ ${j.phone} ຂອງທ່ານສ້ອມແລ້ວ ພ້ອມໃຫ້ມາຮັບທີ່ຮ້ານ ຄ່າສ້ອມ ₭${thb(j.price)}`,
-    'ແຈ້ງລູກຄ້າແລ້ວ': `ແຈ້ງລູກຄ້າຮຽບຮ້ອຍ ລໍຖ້າລູກຄ້າມາຮັບເຄື່ອງ ${j.phone}`,
-    'ຮັບເຄື່ອງຄືນແລ້ວ': `ລູກຄ້າຮັບເຄື່ອງ ${j.phone} ຄືນຮຽບຮ້ອຍແລ້ວ ຂອບໃຈທີ່ໃຊ້ບໍລິການ`,
-    'ຍົກເລີກ': `ໃບງານສ້ອມ ${j.phone} ຖືກຍົກເລີກ`,
-  };
-  if(msgMap[status]) logNotification(j, msgMap[status]);
+  const msg = statusMessage(j, status);
+  if(msg) logNotification(j, msg);
   if(['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(status)) reindexQueue();
   if(rerender){ render(); persistState(); }
 }
 function logNotification(job, message){
-  state.notifLog.push({id:nextId(), jobId:job.id, customer:job.customer, message, time:new Date().toISOString(), channel: job.customerPhone ? 'WhatsApp' : 'LINE OA / SMS (ບໍ່ໄດ້ໃສ່ເບີ)'});
-  sendWhatsAppNotification(job, message);
+  state.notifLog.push({id:nextId(), jobId:job.id, customer:job.customer, message, time:new Date().toISOString(), channel: job.customerPhone ? 'WhatsApp' : 'ບໍ່ໄດ້ບັນທຶກເບີໂທ'});
 }
 
 /* ================= QUEUE (4) ================= */
@@ -821,7 +893,10 @@ function viewQueue(){
   return `
   <div class="topbar">
     <div><h2>ຮັບອໍເດີ &amp; ຈັດຄິວງານ</h2><div class="sub">ເປີດໃບງານໃໝ່ ແລະ ຈັດລຳດັບຄິວສ້ອມຂອງຊ່າງ</div></div>
-    <button class="btn" onclick="openNewOrderForm()">+ ຮັບອໍເດີໃໝ່</button>
+    <div style="display:flex;gap:8px;">
+      ${active.length? `<button class="btn ghost" onclick="clearQueue()">🗑️ ລ້າງຄິວທັງໝົດ</button>` : ''}
+      <button class="btn" onclick="openNewOrderForm()">+ ຮັບອໍເດີໃໝ່</button>
+    </div>
   </div>
 
   <div class="card">
@@ -835,11 +910,23 @@ function viewQueue(){
         <div class="queue-actions">
           <button class="iconbtn" onclick="moveQueue(${j.id},-1)" ${i===0?'disabled':''}>↑</button>
           <button class="iconbtn" onclick="moveQueue(${j.id},1)" ${i===active.length-1?'disabled':''}>↓</button>
+          <button class="iconbtn" onclick="deleteJob(${j.id})" title="ລຶບໃບງານນີ້">✕</button>
         </div>
       </div>
     `).join('') : `<div class="empty"><div class="big">📋</div>ຍັງບໍ່ມີຄິວງານ</div>`}
   </div>
   `;
+}
+function deleteJob(id){
+  if(!confirm('ຢືນຢັນລຶບໃບງານນີ້ອອກຖາວອນ?')) return;
+  state.jobs = state.jobs.filter(j=>j.id!==id);
+  reindexQueue();
+  render(); persistState();
+}
+function clearQueue(){
+  if(!confirm('ຢືນຢັນລ້າງໃບງານທັງໝົດທີ່ຍັງຄ້າງໃນຄິວ? ຂໍ້ມູນຈະຫາຍໄປຖາວອນ')) return;
+  state.jobs = state.jobs.filter(j=>['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status));
+  render(); persistState();
 }
 function moveQueue(id, dir){
   const active = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).sort((a,b)=>a.queue-b.queue);
@@ -907,7 +994,7 @@ function viewNotify(){
       <div class="card">
         <div style="font-weight:600;">${j.phone} — ${j.customer}</div>
         <div style="font-size:12.5px;color:var(--text-dim);margin:6px 0 10px;">ຄ່າສ້ອມ ₭${thb(j.price)}</div>
-        <button class="btn sm" style="width:100%;" onclick="updateJobStatus(${j.id},'ແຈ້ງລູກຄ້າແລ້ວ')">🔔 ສົ່ງແຈ້ງເຕືອນລູກຄ້າ</button>
+        <button class="btn sm" style="width:100%;" onclick="openWaModal(${j.id})">📲 ແຈ້ງລູກຄ້າຜ່ານ WhatsApp</button>
       </div>`).join('')}
   </div>` : ''}
 
