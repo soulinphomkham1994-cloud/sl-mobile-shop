@@ -202,14 +202,52 @@ tr:hover td{ background:var(--surface-2); }
 .progress-fill{ height:100%; background:linear-gradient(90deg,var(--accent-2),var(--accent)); }
 
 .mini-note{ font-size:12px; color:var(--text-dim); margin-top:16px; border-top:1px dashed var(--border); padding-top:10px;}
+
+/* login screen */
+.login-screen{
+  position:fixed; inset:0; z-index:200; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 30% 20%, rgba(225,57,80,.12), transparent 60%), var(--bg);
+  padding:20px;
+}
+.login-card{
+  width:380px; max-width:100%; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:32px 28px; box-shadow:var(--shadow);
+}
+.login-card .mark{ font-size:12px; letter-spacing:4px; color:var(--gold); font-weight:700; text-align:center; }
+.login-card h2{ font-size:22px; text-align:center; margin:8px 0 22px; }
+.login-error{ color:var(--accent); font-size:13px; min-height:18px; margin-top:4px; text-align:center;}
+.user-badge{ display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:12px; color:var(--text-dim); margin-top:10px; padding:0 4px;}
+.user-badge button{ background:none; border:none; color:var(--accent); cursor:pointer; font-size:12px; }
+
 </style>
 </head>
 <body data-theme="dark">
-<div class="app">
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="mark">SOULIN &amp; MOBILE</div>
+    <h2>ເຂົ້າສູ່ລະບົບ</h2>
+    <div class="field">
+      <label>ປະເພດຜູ້ໃຊ້</label>
+      <select id="login_role">
+        <option value="admin">ຜູ້ດູແລລະບົບ (Admin)</option>
+        <option value="sale">ພະນັກງານຂາຍ (Sale)</option>
+      </select>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label>ລະຫັດຜ່ານ</label>
+      <input type="password" id="login_password" placeholder="ໃສ່ລະຫັດຜ່ານ" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn" style="width:100%;margin-top:6px;" onclick="doLogin()">ເຂົ້າສູ່ລະບົບ</button>
+  </div>
+</div>
+
+<div class="app" id="appShell" style="display:none;">
 
   <aside class="sidebar">
     <div class="brand">
-      <div class="mark">RED &amp; BLACK MOBILE</div>
+      <div class="mark">SOULIN &amp; MOBILE</div>
       <h1>ລະບົບບໍລິຫານຮ້ານ<br>ສ້ອມ &amp; ຂາຍໂທລະສັບມືຖື</h1>
     </div>
     <nav class="nav" id="navList"></nav>
@@ -219,6 +257,7 @@ tr:hover td{ background:var(--surface-2); }
         <button id="btnLight" onclick="setTheme('light')">☀️ ແຈ້ງ</button>
       </div>
       <div id="cloudStatus" style="display:flex;align-items:center;gap:6px;font-size:12px;margin-top:10px;color:var(--text-dim);padding:0 4px;"></div>
+      <div class="user-badge" id="userBadge"></div>
     </div>
   </aside>
 
@@ -233,6 +272,41 @@ tr:hover td{ background:var(--surface-2); }
 /* ================= STATE ================= */
 let uid = 1000;
 const nextId = () => uid++;
+
+/* ================= AUTH (ລະບົບເຂົ້າສູ່ລະບົບ) =================
+   ⚠️ ປ່ຽນລະຫັດຜ່ານທັງສອງນີ້ກ່ອນເອົາຂຶ້ນໃຊ້ງານແທ້ (ຄົ້ນຫາຄຳວ່າ USERS ໃນໄຟລ໌ນີ້)
+   ນີ້ເປັນລະບົບປ້ອງກັນເບື້ອງຕົ້ນ (client-side) ບໍ່ແມ່ນລະບົບຄວາມປອດໄພລະດັບອົງກອນ */
+const USERS = {
+  admin: { password: 'admin1234', role: 'admin', label: 'ຜູ້ດູແລລະບົບ' },
+  sale:  { password: 'sale1234',  role: 'sale',  label: 'ພະນັກງານຂາຍ' },
+};
+let currentUser = null;
+function isAdmin(){ return !!currentUser && currentUser.role === 'admin'; }
+
+function doLogin(){
+  const role = document.getElementById('login_role').value;
+  const pass = document.getElementById('login_password').value;
+  const u = USERS[role];
+  if(u && pass === u.password){
+    currentUser = { role: u.role, label: u.label };
+    sessionStorage.setItem('shopUser', JSON.stringify(currentUser));
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    startApp();
+  } else {
+    document.getElementById('loginError').textContent = 'ລະຫັດຜ່ານບໍ່ຖືກຕ້ອງ';
+  }
+}
+function logout(){
+  sessionStorage.removeItem('shopUser');
+  location.reload();
+}
+function renderUserBadge(){
+  const el = document.getElementById('userBadge');
+  if(!el || !currentUser) return;
+  el.innerHTML = `<span>👤 ${currentUser.label}</span><button onclick="logout()">ອອກຈາກລະບົບ</button>`;
+}
 
 const state = {
   theme: 'dark',
@@ -400,19 +474,23 @@ const NAV = [
   {id:'jobs', label:'ອັບເດດສະຖານະ & ຕິດຕາມງານ', icon:'🔧', num:'3'},
   {id:'queue', label:'ຮັບອໍເດີ & ຈັດຄິວງານ', icon:'📋', num:'4'},
   {id:'notify', label:'ແຈ້ງເຕືອນລູກຄ້າ', icon:'🔔', num:'5'},
-  {id:'accounting', label:'ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ', icon:'📊', num:'6'},
+  {id:'accounting', label:'ບັນຊີລາຍຮັບ-ລາຍຈ່າຍ', icon:'📊', num:'6', adminOnly:true},
 ];
 
 function renderNav(){
   const el = document.getElementById('navList');
-  el.innerHTML = NAV.map(n => `
+  el.innerHTML = NAV.filter(n=>!n.adminOnly || isAdmin()).map(n => `
     <div class="nav-item ${state.tab===n.id?'active':''}" onclick="goTab('${n.id}')">
       <span>${n.icon}</span>
       <span class="num">${n.num||''}</span>
       <span>${n.label}</span>
     </div>`).join('');
 }
-function goTab(id){ state.tab = id; render(); }
+function goTab(id){
+  const navItem = NAV.find(n=>n.id===id);
+  if(navItem && navItem.adminOnly && !isAdmin()) return; // ພະນັກງານຂາຍເຂົ້າໜ້ານີ້ບໍ່ໄດ້
+  state.tab = id; render();
+}
 function setTheme(t){
   state.theme = t;
   document.body.setAttribute('data-theme', t);
@@ -430,6 +508,7 @@ function closeModal(){ document.getElementById('overlay').classList.remove('show
 
 /* ================= RENDER ROOT ================= */
 function render(){
+  if(state.tab==='accounting' && !isAdmin()) state.tab = 'dashboard';
   renderNav();
   const main = document.getElementById('mainContent');
   if(state.tab==='dashboard') main.innerHTML = viewDashboard();
@@ -449,11 +528,11 @@ function viewDashboard(){
   const todaySales = state.sales.filter(s=>s.date===today()).reduce((a,b)=>a+b.total,0);
   const activeJobs = state.jobs.filter(j=>!['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status)).length;
   const lowStock = state.stock.filter(s=>s.qty<=s.minQty).length;
-  const monthProfit = computeProfit(monthKey(today()));
+  const monthProfit = isAdmin() ? computeProfit(monthKey(today())) : null;
 
   const recentJobs = [...state.jobs].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,4);
 
-  afterRenderHooks = () => drawChart('dashChart', monthlySeries(6));
+  afterRenderHooks = () => { if(isAdmin()) drawChart('dashChart', monthlySeries(6)); };
 
   return `
   <div class="topbar">
@@ -464,11 +543,13 @@ function viewDashboard(){
     <div class="card stat"><div class="label">ຍອດຂາຍມື້ນີ້</div><div class="value">₭${thb(todaySales)}</div><div class="delta up">ຈາກໃບບິນ ${state.sales.filter(s=>s.date===today()).length} ໃບ</div></div>
     <div class="card stat"><div class="label">ງານສ້ອມທີ່ກຳລັງດຳເນີນການ</div><div class="value">${activeJobs} ງານ</div><div class="delta">ລວມທຸກຄິວ</div></div>
     <div class="card stat"><div class="label">ອາໄຫລ່ໃກ້ໝົດ</div><div class="value" style="color:${lowStock? 'var(--accent)':'inherit'}">${lowStock} ລາຍການ</div><div class="delta ${lowStock?'down':''}">${lowStock? 'ຄວນສັ່ງເພີ່ມ':'ສະຕັອກປົກກະຕິ'}</div></div>
-    <div class="card stat"><div class="label">ກຳໄລເດືອນນີ້</div><div class="value">₭${thb(monthProfit)}</div><div class="delta ${monthProfit>=0?'up':'down'}">${monthProfit>=0?'ກຳໄລ':'ຂາດທຶນ'}</div></div>
+    ${isAdmin()? `<div class="card stat"><div class="label">ກຳໄລເດືອນນີ້</div><div class="value">₭${thb(monthProfit)}</div><div class="delta ${monthProfit>=0?'up':'down'}">${monthProfit>=0?'ກຳໄລ':'ຂາດທຶນ'}</div></div>` : ''}
   </div>
 
+  ${isAdmin()? `
   <div class="section-title"><span>ຍອດຂາຍ-ຕົ້ນທຶນ 6 ເດືອນຫລ້າສຸດ</span><div class="line"></div></div>
   <div class="card"><canvas id="dashChart" height="90"></canvas></div>
+  ` : ''}
 
   <div class="section-title"><span>ງານສ້ອມຫລ້າສຸດ</span><div class="line"></div><span onclick="goTab('jobs')" style="cursor:pointer;font-size:13px;color:var(--accent)">ເບິ່ງທັງໝົດ →</span></div>
   <div class="grid cols-4">
@@ -563,11 +644,11 @@ function viewSales(){
 
   <div class="section-title">
     <span>ປະຫວັດການຂາຍຫລ້າສຸດ</span><div class="line"></div>
-    ${state.sales.length? `<button class="btn sm outline" onclick="clearAllSales()">🗑️ ລ້າງລາຍການທັງໝົດ</button>` : ''}
+    ${isAdmin() && state.sales.length? `<button class="btn sm outline" onclick="clearAllSales()">🗑️ ລ້າງລາຍການທັງໝົດ</button>` : ''}
   </div>
   <div class="card">
     <table>
-      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th><th></th></tr>
+      <tr><th>ວັນທີ</th><th>ລູກຄ້າ</th><th>ລາຍການ</th><th>ຊຳລະໂດຍ</th><th>ຍອດລວມ</th>${isAdmin()?'<th></th>':''}</tr>
       ${[...state.sales].reverse().map(s=>`
         <tr>
           <td>${formatLaoDate(s.date)}</td>
@@ -575,7 +656,7 @@ function viewSales(){
           <td>${s.items.map(i=>i.name+' ×'+i.qty).join(', ')}</td>
           <td><span class="badge gray">${s.payment}</span></td>
           <td style="font-weight:700;">₭${thb(s.total)}</td>
-          <td><button class="iconbtn" onclick="deleteSale(${s.id})" title="ລຶບລາຍການນີ້">✕</button></td>
+          ${isAdmin()? `<td><button class="iconbtn" onclick="deleteSale(${s.id})" title="ລຶບລາຍການນີ້">✕</button></td>` : ''}
         </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີປະຫວັດການຂາຍ</td></tr>`}
     </table>
   </div>
@@ -583,11 +664,13 @@ function viewSales(){
 }
 
 function deleteSale(id){
+  if(!isAdmin()) return;
   if(!confirm('ຢືນຢັນລຶບລາຍການຂາຍນີ້ອອກ? (ຈະບໍ່ຄືນສະຕັອກ/ສະຖານະເຄື່ອງໃຫ້ອັດຕະໂນມັດ)')) return;
   state.sales = state.sales.filter(s=>s.id!==id);
   render(); persistState();
 }
 function clearAllSales(){
+  if(!isAdmin()) return;
   if(!confirm('ຢືນຢັນລ້າງປະຫວັດການຂາຍທັງໝົດ? ຂໍ້ມູນຈະຫາຍໄປຖາວອນ')) return;
   state.sales = [];
   render(); persistState();
@@ -631,25 +714,28 @@ function viewStock(){
   return `
   <div class="topbar">
     <div><h2>ສະຕັອກອາໄຫລ່ &amp; ອຸປະກອນ</h2><div class="sub">ຕິດຕາມຈຳນວນຄົງເຫລືອ ແຈ້ງເຕືອນເມື່ອໃກ້ໝົດ</div></div>
-    <button class="btn" onclick="openStockForm()">+ ເພີ່ມລາຍການສະຕັອກ</button>
+    <div style="display:flex;gap:8px;">
+      <button class="btn outline" onclick="openPhoneForm()">+ ເພີ່ມມືຖືມືສອງ</button>
+      <button class="btn" onclick="openStockForm()">+ ເພີ່ມລາຍການສະຕັອກ</button>
+    </div>
   </div>
 
   <div class="card">
     <table>
-      <tr><th>ລະຫັດ SKU</th><th>ຊື່ສິນຄ້າ</th><th>ປະເພດ</th><th>ຄົງເຫລືອ</th><th>ຕົ້ນທຶນ</th><th>ລາຄາຂາຍ</th><th>ສະຖານະ</th><th></th></tr>
+      <tr><th>ລະຫັດ SKU</th><th>ຊື່ສິນຄ້າ</th><th>ປະເພດ</th><th>ຄົງເຫລືອ</th>${isAdmin()?'<th>ຕົ້ນທຶນ</th>':''}<th>ລາຄາຂາຍ</th><th>ສະຖານະ</th><th></th></tr>
       ${state.stock.map(s=>`
         <tr>
           <td>${s.sku}</td>
           <td>${s.name}</td>
           <td><span class="badge gray">${s.category}</span></td>
           <td>${s.qty} ${s.unit}</td>
-          <td>₭${thb(s.cost)}</td>
+          ${isAdmin()?`<td>₭${thb(s.cost)}</td>`:''}
           <td>₭${thb(s.price)}</td>
           <td>${s.qty<=s.minQty? `<span class="badge red">ໃກ້ໝົດ</span>`:`<span class="badge green">ປົກກະຕິ</span>`}</td>
           <td style="white-space:nowrap;">
             <button class="iconbtn" onclick="adjustStock(${s.id},1)">+</button>
             <button class="iconbtn" onclick="adjustStock(${s.id},-1)">−</button>
-            <button class="iconbtn" onclick="deleteStock(${s.id})">✕</button>
+            ${isAdmin()? `<button class="iconbtn" onclick="deleteStock(${s.id})">✕</button>` : ''}
           </td>
         </tr>`).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີລາຍການສະຕັອກ</td></tr>`}
     </table>
@@ -658,16 +744,20 @@ function viewStock(){
   <div class="section-title"><span>ໂທລະສັບມືສອງ (ສະຕັອກເຄື່ອງ)</span><div class="line"></div></div>
   <div class="card">
     <table>
-      <tr><th>ຍີ່ຫໍ້/ຮຸ່ນ</th><th>IMEI</th><th>ສະພາບ</th><th>ຕົ້ນທຶນ</th><th>ລາຄາຂາຍ</th><th>ສະຖານະ</th></tr>
+      <tr><th>ຍີ່ຫໍ້/ຮຸ່ນ</th><th>IMEI</th><th>ສະພາບ</th>${isAdmin()?'<th>ຕົ້ນທຶນ</th>':''}<th>ລາຄາຂາຍ</th><th>ສະຖານະ</th><th></th></tr>
       ${state.phones.map(p=>`
         <tr>
           <td>${p.brand} ${p.model}</td>
           <td>${p.imei}</td>
           <td>${p.condition}</td>
-          <td>₭${thb(p.cost)}</td>
+          ${isAdmin()?`<td>₭${thb(p.cost)}</td>`:''}
           <td>₭${thb(p.price)}</td>
           <td>${p.status==='ພ້ອມຂາຍ'? `<span class="badge green">ພ້ອມຂາຍ</span>`:`<span class="badge gray">ຂາຍແລ້ວ</span>`}</td>
-        </tr>`).join('')}
+          <td style="white-space:nowrap;">
+            <button class="btn sm ghost" onclick="togglePhoneStatus(${p.id})">ສະລັບສະຖານະ</button>
+            ${isAdmin()? `<button class="iconbtn" onclick="deletePhone(${p.id})">✕</button>` : ''}
+          </td>
+        </tr>`).join('') || `<tr><td colspan="7" style="text-align:center;color:var(--text-dim)">ຍັງບໍ່ມີມືຖືມືສອງໃນສະຕັອກ</td></tr>`}
     </table>
   </div>
   `;
@@ -677,7 +767,21 @@ function adjustStock(id,d){
   if(s) s.qty = Math.max(0, s.qty+d);
   render(); persistState();
 }
-function deleteStock(id){ state.stock = state.stock.filter(s=>s.id!==id); render(); persistState(); }
+function deleteStock(id){
+  if(!isAdmin()) return;
+  state.stock = state.stock.filter(s=>s.id!==id); render(); persistState();
+}
+function togglePhoneStatus(id){
+  const p = state.phones.find(x=>x.id===id);
+  if(p) p.status = p.status==='ພ້ອມຂາຍ' ? 'ຂາຍແລ້ວ' : 'ພ້ອມຂາຍ';
+  render(); persistState();
+}
+function deletePhone(id){
+  if(!isAdmin()) return;
+  if(!confirm('ຢືນຢັນລຶບມືຖືເຄື່ອງນີ້ອອກຈາກສະຕັອກ?')) return;
+  state.phones = state.phones.filter(p=>p.id!==id);
+  render(); persistState();
+}
 function openStockForm(){
   openModal(`
     <div class="modal-head"><h3>ເພີ່ມລາຍການສະຕັອກ</h3><span onclick="closeModal()">✕</span></div>
@@ -712,6 +816,38 @@ function saveStock(){
     cost:Number(document.getElementById('f_cost').value)||0,
     price:Number(document.getElementById('f_price').value)||0,
     unit:document.getElementById('f_unit').value || 'ອັນ',
+  });
+  closeModal(); render(); persistState();
+}
+function openPhoneForm(){
+  openModal(`
+    <div class="modal-head"><h3>ເພີ່ມມືຖືມືສອງເຂົ້າສະຕັອກ</h3><span onclick="closeModal()">✕</span></div>
+    <div class="modal-body">
+      <div class="row2">
+        <div class="field"><label>ຍີ່ຫໍ້</label><input id="p_brand" placeholder="ເຊັ່ນ Apple, Samsung"></div>
+        <div class="field"><label>ຮຸ່ນ</label><input id="p_model" placeholder="ເຊັ່ນ iPhone 13 128GB"></div>
+      </div>
+      <div class="field"><label>IMEI</label><input id="p_imei" placeholder="ເລກ IMEI ຂອງເຄື່ອງ"></div>
+      <div class="field"><label>ສະພາບເຄື່ອງ</label><input id="p_condition" placeholder="ເຊັ່ນ ມືສອງ ສະພາບດີ 90%"></div>
+      <div class="row2">
+        <div class="field"><label>ຕົ້ນທຶນ (ກີບ)</label><input id="p_cost" type="number" value="0"></div>
+        <div class="field"><label>ລາຄາຂາຍ (ກີບ)</label><input id="p_price" type="number" value="0"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ຍົກເລີກ</button><button class="btn" onclick="savePhone()">ບັນທຶກ</button></div>
+  `);
+}
+function savePhone(){
+  const brand = document.getElementById('p_brand').value.trim();
+  const model = document.getElementById('p_model').value.trim();
+  if(!brand || !model) return;
+  state.phones.push({
+    id:nextId(), brand, model,
+    imei: document.getElementById('p_imei').value.trim() || '-',
+    condition: document.getElementById('p_condition').value.trim() || 'ມືສອງ',
+    cost:Number(document.getElementById('p_cost').value)||0,
+    price:Number(document.getElementById('p_price').value)||0,
+    status:'ພ້ອມຂາຍ',
   });
   closeModal(); render(); persistState();
 }
@@ -894,7 +1030,7 @@ function viewQueue(){
   <div class="topbar">
     <div><h2>ຮັບອໍເດີ &amp; ຈັດຄິວງານ</h2><div class="sub">ເປີດໃບງານໃໝ່ ແລະ ຈັດລຳດັບຄິວສ້ອມຂອງຊ່າງ</div></div>
     <div style="display:flex;gap:8px;">
-      ${active.length? `<button class="btn ghost" onclick="clearQueue()">🗑️ ລ້າງຄິວທັງໝົດ</button>` : ''}
+      ${isAdmin() && active.length? `<button class="btn ghost" onclick="clearQueue()">🗑️ ລ້າງຄິວທັງໝົດ</button>` : ''}
       <button class="btn" onclick="openNewOrderForm()">+ ຮັບອໍເດີໃໝ່</button>
     </div>
   </div>
@@ -910,7 +1046,7 @@ function viewQueue(){
         <div class="queue-actions">
           <button class="iconbtn" onclick="moveQueue(${j.id},-1)" ${i===0?'disabled':''}>↑</button>
           <button class="iconbtn" onclick="moveQueue(${j.id},1)" ${i===active.length-1?'disabled':''}>↓</button>
-          <button class="iconbtn" onclick="deleteJob(${j.id})" title="ລຶບໃບງານນີ້">✕</button>
+          ${isAdmin()? `<button class="iconbtn" onclick="deleteJob(${j.id})" title="ລຶບໃບງານນີ້">✕</button>` : ''}
         </div>
       </div>
     `).join('') : `<div class="empty"><div class="big">📋</div>ຍັງບໍ່ມີຄິວງານ</div>`}
@@ -918,12 +1054,14 @@ function viewQueue(){
   `;
 }
 function deleteJob(id){
+  if(!isAdmin()) return;
   if(!confirm('ຢືນຢັນລຶບໃບງານນີ້ອອກຖາວອນ?')) return;
   state.jobs = state.jobs.filter(j=>j.id!==id);
   reindexQueue();
   render(); persistState();
 }
 function clearQueue(){
+  if(!isAdmin()) return;
   if(!confirm('ຢືນຢັນລ້າງໃບງານທັງໝົດທີ່ຍັງຄ້າງໃນຄິວ? ຂໍ້ມູນຈະຫາຍໄປຖາວອນ')) return;
   state.jobs = state.jobs.filter(j=>['ຮັບເຄື່ອງຄືນແລ້ວ','ຍົກເລີກ'].includes(j.status));
   render(); persistState();
@@ -1203,11 +1341,26 @@ function drawChart(canvasId, series){
 }
 
 /* ================= INIT ================= */
-seedJobs();
-setTheme('dark');
-render();
-setCloudStatus('offline');
-initCloudSync();
+function startApp(){
+  renderUserBadge();
+  seedJobs();
+  setTheme('dark');
+  render();
+  setCloudStatus('offline');
+  initCloudSync();
+}
+
+(function checkSession(){
+  const saved = sessionStorage.getItem('shopUser');
+  if(saved){
+    try{
+      currentUser = JSON.parse(saved);
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appShell').style.display = 'flex';
+      startApp();
+    }catch(e){ sessionStorage.removeItem('shopUser'); }
+  }
+})();
 </script>
 </body>
 </html>
